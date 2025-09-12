@@ -1,0 +1,29 @@
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  args:
+    [
+      'build',
+      '-t',
+      'us-central1-docker.pkg.dev/gen-lang-client-0062785460/my-repo/django-web:latest',
+      '.',
+    ]
+  secretEnv:
+    - HF_TOKEN
+    - VECTOR_DB_URL
+    - VECTOR_DB_KEY
+    - QLOO_API_KEY
+    - QLOO_BASE_URL
+    - VAPID_PUBLIC_KEY
+    - VAPID_PRIVATE_KEY
+    - CEREBRAS_API_KEY
+
+secrets:
+- secretEnv:
+    HF_TOKEN: projects/gen-lang-client-0062785460/secrets/HF_TOKEN/versions/latest
+    VECTOR_DB_URL: projects/gen-lang-client-0062785460/secrets/VECTOR_DB_URL/versions/latest
+    VECTOR_DB_KEY: projects/gen-lang-client-0062785460/secrets/VECTOR_DB_KEY/versions/latest
+    QLOO_API_KEY: projects/gen-lang-client-0062785460/secrets/QLOO_API_KEY/versions/latest
+    QLOO_BASE_URL: projects/gen-lang-client-0062785460/secrets/QLOO_BASE_URL/versions/latest
+    VAPID_PUBLIC_KEY: projects/gen-lang-client-0062785460/secrets/VAPID_PUBLIC_KEY/versions/latest
+    VAPID_PRIVATE_KEY: projects/gen-lang-client-0062785460/secrets/VAPID_PRIVATE_KEY/versions/latest
+    CEREBRAS_API_KEY: projects/gen-lang-client-0062785460/secrets/CEREBRAS_API_KEY/versions/latest
