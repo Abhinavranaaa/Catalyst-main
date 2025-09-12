@@ -20,7 +20,6 @@ RUN mkdir -p /app/nltk_data && \
 
 # Copy all other source code
 COPY . .
-COPY healthcheck_server.py /app/healthcheck_server.py
 
 # Set environment variable so nltk loads corpora properly
 ENV NLTK_DATA=/app/nltk_data
