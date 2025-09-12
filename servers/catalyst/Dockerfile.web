@@ -17,6 +17,7 @@ RUN mkdir -p /app/nltk_data && \
 
 COPY . .
 
+# Build-time args (for optional use, but not required at runtime)
 ARG HF_TOKEN
 ARG VECTOR_DB_URL
 ARG VECTOR_DB_KEY
@@ -26,6 +27,7 @@ ARG VAPID_PUBLIC_KEY
 ARG VAPID_PRIVATE_KEY
 ARG CEREBRAS_API_KEY
 
+# Expose runtime envs
 ENV HF_TOKEN=${HF_TOKEN}
 ENV VECTOR_DB_URL=${VECTOR_DB_URL}
 ENV VECTOR_DB_KEY=${VECTOR_DB_KEY}
@@ -38,13 +40,9 @@ ENV CEREBRAS_API_KEY=${CEREBRAS_API_KEY}
 ENV NLTK_DATA=/app/nltk_data
 ENV PORT=8080
 
-# Debug print secrets right before collectstatic, to verify they're set properly
-RUN echo "HF_TOKEN: ${HF_TOKEN:0:10}..." && \
-    echo "VECTOR_DB_URL: ${VECTOR_DB_URL:0:10}..." && \
-    echo "VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:0:10}..." && \
-    echo "VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:0:10}..." && \
-    python manage.py collectstatic --noinput
+# Run collectstatic at container startup, not at build time
+CMD python manage.py collectstatic --noinput && \
+    gunicorn catalyst.wsgi:application --bind :8080 --timeout 120
 
-CMD ["gunicorn", "catalyst.wsgi:application", "--bind", ":8080", "--timeout", "120"]
 
 
