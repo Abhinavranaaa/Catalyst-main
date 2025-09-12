@@ -1,29 +1,30 @@
 steps:
-- name: 'gcr.io/cloud-builders/docker'
-  entrypoint: 'bash'
-  secretEnv:
-    - HF_TOKEN
-    - VECTOR_DB_URL
-    - VECTOR_DB_KEY
-    - QLOO_API_KEY
-    - QLOO_BASE_URL
-    - VAPID_PUBLIC_KEY
-    - VAPID_PRIVATE_KEY
-    - CEREBRAS_API_KEY
-  args:
-    - '-c'
-    - |
-      docker build \
-        --build-arg HF_TOKEN="$HF_TOKEN" \
-        --build-arg VECTOR_DB_URL="$VECTOR_DB_URL" \
-        --build-arg VECTOR_DB_KEY="$VECTOR_DB_KEY" \
-        --build-arg QLOO_API_KEY="$QLOO_API_KEY" \
-        --build-arg QLOO_BASE_URL="$QLOO_BASE_URL" \
-        --build-arg VAPID_PUBLIC_KEY="$VAPID_PUBLIC_KEY" \
-        --build-arg VAPID_PRIVATE_KEY="$VAPID_PRIVATE_KEY" \
-        --build-arg CEREBRAS_API_KEY="$CEREBRAS_API_KEY" \
-        -t us-central1-docker.pkg.dev/gen-lang-client-0062785460/my-repo/django-web:latest \
-        .
+  - name: 'gcr.io/cloud-builders/docker'
+    entrypoint: 'bash'
+    secretEnv:
+      - HF_TOKEN
+      - VECTOR_DB_URL
+      - VECTOR_DB_KEY
+      - QLOO_API_KEY
+      - QLOO_BASE_URL
+      - VAPID_PUBLIC_KEY
+      - VAPID_PRIVATE_KEY
+      - CEREBRAS_API_KEY
+    args:
+      - '-c'
+      - |
+        docker build \
+          --build-arg HF_TOKEN="$HF_TOKEN" \
+          --build-arg VECTOR_DB_URL="$VECTOR_DB_URL" \
+          --build-arg VECTOR_DB_KEY="$VECTOR_DB_KEY" \
+          --build-arg QLOO_API_KEY="$QLOO_API_KEY" \
+          --build-arg QLOO_BASE_URL="$QLOO_BASE_URL" \
+          --build-arg VAPID_PUBLIC_KEY="$VAPID_PUBLIC_KEY" \
+          --build-arg VAPID_PRIVATE_KEY="$VAPID_PRIVATE_KEY" \
+          --build-arg CEREBRAS_API_KEY="$CEREBRAS_API_KEY" \
+          -t us-central1-docker.pkg.dev/gen-lang-client-0062785460/my-repo/django-web:latest \
+          .
+
 secrets:
 - secretEnv:
     HF_TOKEN: projects/gen-lang-client-0062785460/secrets/HF_TOKEN/versions/latest

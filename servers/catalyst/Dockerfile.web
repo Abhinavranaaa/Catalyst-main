@@ -46,9 +46,15 @@ ENV NLTK_DATA=/app/nltk_data
 ENV PORT=8080
 
 # Run Django's collectstatic with all secrets explicitly exported in same RUN step
-RUN echo "VAPID_PUBLIC_KEY: $VAPID_PUBLIC_KEY" && \
-    echo "VAPID_PRIVATE_KEY: $VAPID_PRIVATE_KEY" && \
-    python manage.py collectstatic --noinput
+RUN export HF_TOKEN=${HF_TOKEN} \
+    && export VECTOR_DB_URL=${VECTOR_DB_URL} \
+    && export VECTOR_DB_KEY=${VECTOR_DB_KEY} \
+    && export QLOO_API_KEY=${QLOO_API_KEY} \
+    && export QLOO_BASE_URL=${QLOO_BASE_URL} \
+    && export VAPID_PUBLIC_KEY=${VAPID_PUBLIC_KEY} \
+    && export VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY} \
+    && export CEREBRAS_API_KEY=${CEREBRAS_API_KEY} \
+    && python manage.py collectstatic --noinput
 
 
 # Command to run Gunicorn WSGI server with timeout and bind to port 8080
