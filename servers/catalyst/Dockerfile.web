@@ -2,7 +2,6 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies for psycopg2 and unzip for nltk
 RUN apt-get update && apt-get install -y \
     unzip \
     libpq-dev \
@@ -10,18 +9,14 @@ RUN apt-get update && apt-get install -y \
     python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements and install python packages
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Download NLTK corpora during build
 RUN mkdir -p /app/nltk_data && \
     python -m nltk.downloader -d /app/nltk_data stopwords punkt wordnet
 
-# Copy all other source code
 COPY . .
 
-# Accept secrets as build arguments
 ARG HF_TOKEN
 ARG VECTOR_DB_URL
 ARG VECTOR_DB_KEY
@@ -31,7 +26,6 @@ ARG VAPID_PUBLIC_KEY
 ARG VAPID_PRIVATE_KEY
 ARG CEREBRAS_API_KEY
 
-# Set secrets as environment variables in the image for runtime
 ENV HF_TOKEN=${HF_TOKEN}
 ENV VECTOR_DB_URL=${VECTOR_DB_URL}
 ENV VECTOR_DB_KEY=${VECTOR_DB_KEY}
@@ -41,22 +35,16 @@ ENV VAPID_PUBLIC_KEY=${VAPID_PUBLIC_KEY}
 ENV VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY}
 ENV CEREBRAS_API_KEY=${CEREBRAS_API_KEY}
 
-# Set environment variable so nltk loads corpora properly
 ENV NLTK_DATA=/app/nltk_data
 ENV PORT=8080
 
-# Run Django's collectstatic with all secrets explicitly exported in same RUN step
-RUN export HF_TOKEN=${HF_TOKEN} \
-    && export VECTOR_DB_URL=${VECTOR_DB_URL} \
-    && export VECTOR_DB_KEY=${VECTOR_DB_KEY} \
-    && export QLOO_API_KEY=${QLOO_API_KEY} \
-    && export QLOO_BASE_URL=${QLOO_BASE_URL} \
-    && export VAPID_PUBLIC_KEY=${VAPID_PUBLIC_KEY} \
-    && export VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY} \
-    && export CEREBRAS_API_KEY=${CEREBRAS_API_KEY} \
-    && python manage.py collectstatic --noinput
+# Debug print secrets right before collectstatic, to verify they're set properly
+RUN echo "HF_TOKEN: ${HF_TOKEN:0:10}..." && \
+    echo "VECTOR_DB_URL: ${VECTOR_DB_URL:0:10}..." && \
+    echo "VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:0:10}..." && \
+    echo "VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:0:10}..." && \
+    python manage.py collectstatic --noinput
 
-
-# Command to run Gunicorn WSGI server with timeout and bind to port 8080
 CMD ["gunicorn", "catalyst.wsgi:application", "--bind", ":8080", "--timeout", "120"]
+
 
