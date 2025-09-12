@@ -21,6 +21,26 @@ RUN mkdir -p /app/nltk_data && \
 # Copy all other source code
 COPY . .
 
+# Accept secrets as build arguments
+ARG HF_TOKEN
+ARG VECTOR_DB_URL
+ARG VECTOR_DB_KEY
+ARG QLOO_API_KEY
+ARG QLOO_BASE_URL
+ARG VAPID_PUBLIC_KEY
+ARG VAPID_PRIVATE_KEY
+ARG CEREBRAS_API_KEY
+
+# Set secrets as environment variables in the image
+ENV HF_TOKEN=${HF_TOKEN}
+ENV VECTOR_DB_URL=${VECTOR_DB_URL}
+ENV VECTOR_DB_KEY=${VECTOR_DB_KEY}
+ENV QLOO_API_KEY=${QLOO_API_KEY}
+ENV QLOO_BASE_URL=${QLOO_BASE_URL}
+ENV VAPID_PUBLIC_KEY=${VAPID_PUBLIC_KEY}
+ENV VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY}
+ENV CEREBRAS_API_KEY=${CEREBRAS_API_KEY}
+
 # Set environment variable so nltk loads corpora properly
 ENV NLTK_DATA=/app/nltk_data
 ENV PORT=8080
@@ -30,4 +50,3 @@ RUN python manage.py collectstatic --noinput
 
 # Command to run Gunicorn WSGI server with timeout and bind to port 8080
 CMD ["gunicorn", "catalyst.wsgi:application", "--bind", ":8080", "--timeout", "120"]
-
