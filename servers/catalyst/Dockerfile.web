@@ -40,9 +40,13 @@ ENV CEREBRAS_API_KEY=${CEREBRAS_API_KEY}
 ENV NLTK_DATA=/app/nltk_data
 ENV PORT=8080
 
-# Run collectstatic at container startup, not at build time
+# Entrypoint: run collectstatic, then gunicorn with multiple workers & threads
 CMD python manage.py collectstatic --noinput && \
-    gunicorn catalyst.wsgi:application --bind :8080 --timeout 120
-
+    gunicorn catalyst.wsgi:application \
+      --bind :$PORT \
+      --workers 2 \
+      --threads 4 \
+      --worker-class gthread \
+      --timeout 600
 
 
