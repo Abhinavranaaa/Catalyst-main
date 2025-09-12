@@ -1,0 +1,82 @@
+<app-nav-bar></app-nav-bar>
+<div class="dashboard-container bg-dark text-white ">
+    <div class="container pt-5">
+        <!-- Hero Section -->
+      <div class="hero-section text-center mb-5">
+        <h1 class="hero-title">Learn</h1>
+        <h1 class="hero-title">Better</h1>
+        <h1 class="hero-title">Faster</h1>
+
+        <br><br>
+        <p class="lead mt-4">Your research and thinking partner, grounded in the information you trust, built with the latest
+            Gemini
+            models.</p>
+        <br>
+
+        <div class="d-flex justify-content-center mb-4">
+          <a routerLink="/userHome" class="btn btn-light p-3 get-started-btn">Get Started</a>
+        </div>
+      </div>
+      <!-- Cards Grid Section -->
+      <div class="cards-grid">
+        <!-- Roadmap Card -->
+        <a routerLink="/userHome" class="grid-item-1" style="text-decoration: none; color: inherit;">
+          <dashboard-card
+            color="bg-primary"
+            title="Roadmaps"
+            content="Generate AI-powered learning roadmaps tailored to your goals. Start your personalized journey today."
+            [isClickable]="true"
+            class="grid-item-1">
+          </dashboard-card>
+        </a>
+
+        <!-- Quizzes Card -->
+        <a routerLink="/userHome" class="grid-item-2" style="text-decoration: none; color: inherit;">
+          <dashboard-card
+            color="bg-success"
+            title="Quizzes"
+            content="Adaptive quizzes that understand your learning style and provide personalized feedback."
+            [isClickable]="true"
+            class="grid-item-2">
+          </dashboard-card>
+        </a>
+
+        <!-- Wide Card with Navigation -->
+        <div class="wide-card bg-info grid-item-3">
+          <div class="wide-card-content">
+            <h3 class="mb-4">Quick Actions</h3>
+            <div class="action-buttons">
+              <a routerLink="/userHome" class="btn btn-outline-light action-btn">
+                <i class="fas fa-user"></i>
+                Profile
+              </a>
+              <a routerLink="/userHome" class="btn btn-outline-light action-btn">
+                <i class="fas fa-chart-line"></i>
+                Progress
+              </a>
+              <a routerLink="/userHome" class="btn btn-outline-light action-btn">
+                <i class="fas fa-cog"></i>
+                Settings
+              </a>
+              <a routerLink="/userHome" class="btn btn-outline-light action-btn">
+                <i class="fas fa-question-circle"></i>
+                Help
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Analytics Card -->
+        <a routerLink="/userHome" class="grid-item-4" style="text-decoration: none; color: inherit;">
+          <dashboard-card
+            color="bg-warning"
+            title="Analytics"
+            content="Track your learning progress with detailed insights and performance metrics."
+            [isClickable]="true"
+            class="grid-item-4">
+          </dashboard-card>
+        </a>
+      </div>
+
+    </div>
+</div>

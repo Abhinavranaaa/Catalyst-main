@@ -1,0 +1,32 @@
+.notification{
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  align-items: center;
+  background: rgba(224, 221, 212, 0.75);
+  border-radius: 10px;
+  padding: 15px 27px 15px 27px;
+  justify-content: center;
+  flex-shrink: 0;
+  position: relative;
+  width: 441px
+}
+
+.notification-colour {
+  background: var(--color-secondry-red, #ff9e97);
+  border-radius: 50%;
+  flex-shrink: 0;
+  width: 12px;
+  height: 12px;
+  position: relative;
+
+}
+.notification-title{
+  color: var(--color-primary-green, #46675d);
+  font-family: "AlbertSans-SemiBold", sans-serif;
+  font-weight: 600;
+}
+.notification-text{
+  color: var(--color-primary-black, #1f1f1f);
+  font-family: "AlbertSans-Regular", sans-serif;
+}

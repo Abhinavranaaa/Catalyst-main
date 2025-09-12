@@ -1,0 +1,35 @@
+<app-nav-bar></app-nav-bar>
+<div class="dashboard-container bg-dark text-white ">
+  <div class="container pt-5">
+    <!-- Hero Section -->
+    <div class="hero-section text-center mb-5">
+      <div>
+        <h1 class="hero-title">Catalyst</h1>
+        <h1 class="hero-subtitle">Learn Smarter, Retain Longer</h1>
+      </div>
+
+      <br><br>
+      <p class="lead mt-4">Your AI-powered learning companion—personalized, dynamic, and always by your side.</p>
+      <br>
+
+      <div class="d-flex justify-content-center mb-4">
+        <button type="button" class="btn btn-light p-3 get-started-btn" (click)="openBetaCard()">Join Beta </button>
+      </div>
+    </div>
+    <!-- Cards Grid Section -->
+    <div class="cards-grid">
+
+      <app-roadmap-card />
+      <app-landing-dashboard-card />
+      <div class = "grid-item-3">
+       <app-profile-summary />
+        <app-quick-access />
+      </div>
+
+
+
+
+  </div>
+  <app-beta-page *ngIf="showLoginPage()"></app-beta-page>
+</div>
+</div>

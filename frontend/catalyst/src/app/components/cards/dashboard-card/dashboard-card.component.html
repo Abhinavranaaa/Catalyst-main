@@ -1,0 +1,10 @@
+<div class="card rounded-4 bg-gradient d-flex justify-content-center text-white mb-3" [ngClass]="color()"
+    [style.backgroundColor]="backgroundColor()">
+    <!-- <img src="..." class="card-img-top" alt="..."> -->
+    <div class="card-body">
+        <h5 *ngIf="title()" class="card-title display-6 p-3">{{title()}}</h5>
+        <p *ngIf="!displayImg" class="card-text">{{content}}</p>
+        <img *ngIf="displayImg" [src]="content" class="rounded-3" alt="Card image">
+        <!-- <a href="#" class="btn btn-secondary align-bottom">Go somewhere</a> -->
+    </div>
+</div>

@@ -1,0 +1,22 @@
+* {
+    margin: 0px 0px 0px 0px;
+    padding: 0px 0px 0px 0px;
+    display: inline-flex;
+    justify-content: center;
+}
+
+:host {
+    display: flex;
+    flex-direction: column;
+}
+
+.top {
+    font-size: 1.2rem;
+    margin-top: 30px;
+}
+
+.bottom {
+    font-size: 2rem;
+    font-weight: bold;
+    color: rgb(160, 214, 218);
+}

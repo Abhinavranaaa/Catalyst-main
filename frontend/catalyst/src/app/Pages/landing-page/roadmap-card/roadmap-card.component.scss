@@ -1,0 +1,83 @@
+.roadmap-card{
+  background: #bedce4;
+  height: 341px;
+  width: 326px;
+  position: relative;
+  overflow: hidden;
+  border-radius: 10px;
+
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+  }
+}
+
+.generate {
+  box-sizing: border-box;
+  color: #46675d;
+  text-align: center;
+  font-family: "AlbertSans-Light", sans-serif;
+  font-size: 18px;
+  font-weight: 300;
+  position: relative;
+  top: 102px;
+  left: -90px;
+  transform-origin: 0 0;
+  transform: rotate(0deg) scale(1, 1);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.roadmap {
+  color: #424241;
+  text-align: left;
+  font-family: "Erbaum-Medium", sans-serif;
+  font-size: 56px;
+  letter-spacing: -0.05em;
+  font-weight: 500;
+  position: relative;
+  width: 284px;
+  height: 42px;
+  transform-origin: 0 0;
+  transform: rotate(0deg) scale(1, 1);
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  position: relative;
+  top: 107px;
+  left: 32px;
+}
+
+.primary-button {
+  background-color:  #46675d; /* Green */
+  border: none;
+  color: #eae9e5;
+  text-align: left;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 14px;
+  border-radius: 10px;
+  font-family: "AlbertSans-Light", sans-serif;
+  letter-spacing: 0.01em;
+  font-weight: 300;
+  position: relative;
+  width: 178px;
+  height: 42px;
+  transform-origin: 0 0;
+  transform: rotate(0deg) scale(1, 1);
+  align-items: center;
+  justify-content: flex-start;
+  position: relative;
+  top: 114px;
+  left: 33px;
+
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+  }
+}
+

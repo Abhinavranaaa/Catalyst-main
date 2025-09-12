@@ -1,0 +1,34 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies for psycopg2 and unzip for nltk
+RUN apt-get update && apt-get install -y \
+    unzip \
+    libpq-dev \
+    gcc \
+    python3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements and install python packages
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Download NLTK corpora during build
+RUN mkdir -p /app/nltk_data && \
+    python -m nltk.downloader -d /app/nltk_data stopwords punkt wordnet
+
+# Copy all other source code
+COPY . .
+COPY healthcheck_server.py /app/healthcheck_server.py
+
+# Set environment variable so nltk loads corpora properly
+ENV NLTK_DATA=/app/nltk_data
+ENV PORT=8080
+
+# Run Django's collectstatic to gather static files into STATIC_ROOT
+RUN python manage.py collectstatic --noinput
+
+# Command to run Gunicorn WSGI server with timeout and bind to port 8080
+CMD ["gunicorn", "catalyst.wsgi:application", "--bind", ":8080", "--timeout", "120"]
+

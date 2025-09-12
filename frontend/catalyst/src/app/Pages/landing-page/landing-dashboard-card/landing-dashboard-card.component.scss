@@ -1,0 +1,30 @@
+.landing-dashboard-card {
+  background: #2f2f2f;
+  border-radius: 10px;
+  height: 341px;
+  width: 327px;
+  position: relative;
+
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+  }
+}
+
+.DASHBOARD{
+  color: #f7f6f3;
+  text-align: left;
+  font-family: "Erbaum-Medium", sans-serif;
+  font-size: 42px;
+  letter-spacing: -0.03em;
+  font-weight: 500;
+  position: relative;
+  top: 320px;
+  transform-origin: 0 0;
+  transform: rotate(-90deg) scale(1, 1);
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+

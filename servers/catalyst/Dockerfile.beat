@@ -1,0 +1,30 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies for psycopg2 and unzip for nltk
+RUN apt-get update && apt-get install -y \
+    unzip \
+    libpq-dev \
+    gcc \
+    python3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements and install python packages
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Download NLTK corpora during build
+RUN mkdir -p /app/nltk_data && \
+    python -m nltk.downloader -d /app/nltk_data stopwords punkt wordnet
+
+# Copy all other source code
+COPY . .
+
+# Set environment variable so nltk loads corpora properly
+ENV NLTK_DATA=/app/nltk_data
+
+# Run Django's collectstatic to gather static files into STATIC_ROOT
+RUN python manage.py collectstatic --noinput
+
+CMD ["celery", "-A", "catalyst", "beat", "--loglevel=info"]

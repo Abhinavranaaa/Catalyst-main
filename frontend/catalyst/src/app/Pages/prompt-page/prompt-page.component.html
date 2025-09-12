@@ -1,0 +1,22 @@
+<div class="container-fluid promptbox text-center">
+    <div class="row">
+        <div class="col">
+            <img src="assets/prompt-images/hollow-ball.png" alt="Catalyst Logo" class="img-fluid">
+        </div>
+        <div class="col bg-dark bg-gradient text-white p-5 fs-4">
+            <span class="prompt-text">Which subject are we thinking of and which </span>
+            <br>
+            <!-- <span class="clickable" (click)="openDropdown()"> subject</span> -->
+            <ng-container #dropdownSubject></ng-container>
+            <!-- <span class="clickable" (click)="openDropdown()"> topic</span> -->
+            <span class="prompt-text mb-3">topic should I serve you with</span>
+
+            <input type="text" class="form-control mb-3" placeholder="Enter your subject here">
+            <input type="text" class="form-control mb-3" placeholder="Enter your topic here">
+          <button>Next</button>
+
+            <!-- <input type="text" class="form-control mb-3" placeholder="Enter additional comments here"> -->
+            <mat-progress-bar mode="determinate" value="40" class="progress-bar"></mat-progress-bar>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,68 @@
+<div class="roadmap-block-container" [class.expanded]="roadmapItem.isExpanded">
+  <!-- Main roadmap block header -->
+  <div class="roadmap-block-header" (click)="onToggleExpansion()">
+    <div class="roadmap-block-title">{{ roadmapItem.title }}</div>
+    <div class="roadmap-block-summary">{{ roadmapItem.summary }}</div>
+    <div class="roadmap-block-difficulty">
+      <span class="difficulty-text" [ngClass]="getDifficultyClass(roadmapItem.difficulty)">
+        {{ roadmapItem.difficulty }}
+      </span>
+    </div>
+    <button class="save-button" [class.saved]="roadmapItem.isSaved" (click)="$event.stopPropagation(); onSaveToggle()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M19 21L12 16L5 21V5C5 4.46957 5.21071 3.96086 5.58579 3.58579C5.96086 3.21071 6.46957 3 7 3H17C17.5304 3 18.0391 3.21071 18.4142 3.58579C18.7893 3.96086 19 4.46957 19 5V21Z"
+              [attr.stroke]="roadmapItem.isSaved ? '#ECD593' : '#ECECEC'"
+              [attr.fill]="roadmapItem.isSaved ? '#ECD593' : 'none'"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <div class="expand-icon" [class.rotated]="roadmapItem.isExpanded">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M6 9L12 15L18 9" stroke="#ECECEC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+
+    <!-- Progress bar -->
+    <div class="progress-container">
+      <div class="progress-fill" [style.width.%]="roadmapItem.progressPercentage"></div>
+    </div>
+  </div>
+
+  <!-- Expandable questions section -->
+  <div class="questions-container" [class.show]="roadmapItem.isExpanded">
+    <div class="questions-list">
+      <div class="questions-header">
+        <span class="questions-count">{{ roadmapItem.questions.length }} Questions</span>
+      </div>
+
+      <div class="question-item"
+           *ngFor="let question of roadmapItem.questions"
+           (click)="onQuestionClick(question.id)">
+        <div class="question-content">
+          <div class="question-title">{{ question.title }}</div>
+          <div class="question-summary">{{ question.summary }}</div>
+          <div class="question-difficulty">
+            <span class="difficulty-text" [ngClass]="getDifficultyClass(question.difficulty)">
+              {{ question.difficulty }}
+            </span>
+          </div>
+        </div>
+        <button class="bookmark-button"
+                [class.bookmarked]="question.isBookmarked"
+                (click)="$event.stopPropagation(); onQuestionBookmark(question.id)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M19 21L12 16L5 21V5C5 4.46957 5.21071 3.96086 5.58579 3.58579C5.96086 3.21071 6.46957 3 7 3H17C17.5304 3 18.0391 3.21071 18.4142 3.58579C18.7893 3.96086 19 4.46957 19 5V21Z"
+                  [attr.stroke]="question.isBookmarked ? '#ECD593' : '#ECECEC'"
+                  [attr.fill]="question.isBookmarked ? '#ECD593' : 'none'"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+

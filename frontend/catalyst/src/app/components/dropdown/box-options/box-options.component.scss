@@ -1,0 +1,39 @@
+:host {
+    position: relative;
+    z-index: 1000;
+    // display: inline-block;
+}
+
+.options-container {
+    width: 10rem;
+    background-color: #292929f8;
+    border: 1px solid #ccc;
+
+    position: absolute;
+    max-height: 10rem;
+    overflow-y: scroll;
+
+    font-size: x-small;
+
+    top: 20px;
+    right: 20px;
+}
+
+.options-title {
+    margin-bottom: 0.5rem;
+
+}
+
+.list-group {
+    overflow-y: auto;
+}
+
+.option-text {
+    padding: 0.5rem;
+    font-size: x-small;
+}
+
+.option-text-container {
+    color: #fff;
+    margin: 5px;
+}

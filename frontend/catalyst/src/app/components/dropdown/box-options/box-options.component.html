@@ -1,0 +1,12 @@
+<div class="container-sm options-container">
+  <div class="row">
+    <div class="col-12">
+      <p class="options-title">{{ title }}</p>
+      <ul class="list-group">
+        <li *ngFor="let option of options" class="option-text-container list-group-item">
+          <button (click)="selectOption(option)" class="btn option-text">{{ option.label }}</button>
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>

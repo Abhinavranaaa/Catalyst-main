@@ -1,0 +1,78 @@
+.score-card,
+.score-card * {
+  box-sizing: border-box;
+}
+.score-card {
+  background: #4F7268;
+  padding: 7.82px;
+  display: flex;
+  flex-direction: column;
+  gap: 0px;
+  align-items: flex-start;
+  justify-content: flex-start;
+  flex-shrink: 0;
+  width: 81.61px;
+  height: 90.15px;
+  position: relative;
+
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+  }
+}
+.score-number {
+  color: #eae9e5;
+  text-align: left;
+  font-family: "Erbaum-Regular", sans-serif;
+  font-size: 23.46666717529297px;
+  letter-spacing: -0.03em;
+  font-weight: 400;
+  position: absolute;
+  right: 27.63px;
+  left: 27.375px;
+  bottom: 0.22px;
+  transform-origin: 0 0;
+  transform: rotate(0deg) scale(1, 1);
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+.top-bar {
+  display: flex;
+  flex-direction: row;
+  row-gap: 27px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  align-content: center;
+  align-self: stretch;
+  flex-shrink: 0;
+  height: 11.73px;
+  position: relative;
+}
+.top-icon {
+  flex-shrink: 0;
+  width: 11.73px;
+  height: 11.73px;
+  position: relative;
+  overflow: visible;
+}
+.metric-name {
+  color: #eae9e5;
+  text-align: right;
+  font-family: "AlbertSans-Light", sans-serif;
+  font-size: 11.578947067260742px;
+  letter-spacing: -0.03em;
+  font-weight: 300;
+  text-transform: lowercase;
+  position: relative;
+  transform-origin: 0 0;
+  transform: rotate(0deg) scale(1, 1);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+

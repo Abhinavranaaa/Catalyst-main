@@ -1,0 +1,55 @@
+* {
+    margin: 0px 0px 0px 0px;
+    padding: 0px 0px 0px 0px;
+
+}
+
+:host::-webkit-scrollbar {
+    display: none;
+}
+
+:host {
+    display: flex;
+    flex-direction: column;
+    height: 20vh;
+    max-height: 300px;
+    overflow-y: scroll;
+}
+
+.item {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 7px 10px;
+    border-bottom: 1px solid #ccc;
+
+
+}
+
+// .item:first-child {
+//     border-top: 1px solid #ccc;
+// }
+
+.roadmap-name {
+    font-size: 1.2rem;
+    color: #fff;
+    margin: 5px;
+    display: inline;
+    align-items: flex-start;
+}
+
+//Bootstrap overrides
+.progress {
+    width: 20%;
+    margin: 0 10px;
+}
+
+.progress-bar {
+    background-color: #706f6f;
+    /* Dark Gray */
+    height: 20px;
+    color: white;
+    font-size: 0.9rem;
+    text-align: center;
+}

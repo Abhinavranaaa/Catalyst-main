@@ -1,0 +1,90 @@
+.quick-access {
+  display: flex;
+  align-items: center;
+  background: #f5f5f5;
+  border-radius: 12px;
+  width: 517px;
+  height: 60px;
+  padding: 8px 12px;
+  gap: 12px;
+  box-sizing: border-box;
+
+  .access-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: #46675d;
+    height: 44px;
+    box-sizing: border-box;
+    flex: 1;
+    justify-content: center;
+
+    &:hover {
+      background: rgba(70, 103, 93, 0.1);
+    }
+
+    &.active {
+      background: #ffffff;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+  }
+
+  .access-icon {
+    width: 18px;
+    height: 18px;
+    color: #46675d;
+    flex-shrink: 0;
+
+    &.dashboard-icon {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      justify-content: center;
+
+      .bar {
+        height: 2px;
+        background: currentColor;
+        border-radius: 1px;
+
+        &:nth-child(1) { width: 10px; }
+        &:nth-child(2) { width: 14px; }
+        &:nth-child(3) { width: 8px; }
+      }
+    }
+
+    &.generate-icon {
+      display: flex;
+      gap: 2px;
+      align-items: center;
+      justify-content: center;
+
+      .dot {
+        width: 3px;
+        height: 3px;
+        background: currentColor;
+        border-radius: 50%;
+      }
+    }
+  }
+
+  .access-label {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+  }
+
+  .access-divider {
+    width: 1px;
+    height: 32px;
+    background: #e0e0e0;
+    flex-shrink: 0;
+  }
+}
+
+// Remove responsive behavior since we have fixed dimensions
+// If you need responsive behavior, you can add breakpoints here

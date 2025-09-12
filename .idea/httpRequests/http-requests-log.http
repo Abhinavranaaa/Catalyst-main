@@ -1,0 +1,20 @@
+POST http://localhost:8000/api/login
+User-Agent: IntelliJ HTTP Client/PyCharm 2025.2
+Accept-Encoding: br, deflate, gzip, x-gzip
+Accept: */*
+content-length: 0
+
+<> 2025-08-13T131156.404.html
+
+###
+
+POST http://localhost:8000/api/login
+User-Agent: IntelliJ HTTP Client/PyCharm 2025.2
+Accept-Encoding: br, deflate, gzip, x-gzip
+Accept: */*
+content-length: 0
+
+<> 2025-08-13T131124.404.html
+
+###
+

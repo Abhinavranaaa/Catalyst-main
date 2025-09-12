@@ -1,0 +1,30 @@
+.navbar {
+    position: sticky;
+    color: #EAE9E5;
+    top: 0;
+    z-index: 1000;
+
+}
+
+////remove after We go Live
+//.hidden {
+//    display: none;
+//}
+
+@media screen and (max-width: 768px) {
+    .navbar {
+        position: fixed;
+        width: 100%;
+        top: 0;
+        left: 0;
+        background-color: #292929f8;
+    }
+
+    .navbar-toggler {
+        padding: 0px;
+    }
+
+    .navbar-brand {
+        padding: 0px;
+    }
+}

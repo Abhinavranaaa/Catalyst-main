@@ -1,0 +1,718 @@
+Index: servers/catalyst/users/models.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>from django.db import models\nfrom django.contrib.auth.models import AbstractUser\nfrom django.contrib.postgres.fields import ArrayField\nfrom django.db import models\nfrom django.contrib.postgres.fields import ArrayField\nfrom django.db.models import Count, Q, Subquery, OuterRef\n\n# Create your models here.\nclass User(AbstractUser):\n    name = models.CharField(max_length=255)\n    email = models.EmailField(max_length=255, unique=True)\n    password = models.CharField(max_length=255)\n    username = None\n    USERNAME_FIELD = 'email'\n    REQUIRED_FIELDS = []\n\nclass UserProfileQuerySet(models.QuerySet):\n    def with_computed_fields(self):\n        from roadmap.models import Roadmap\n        from practice.models import Answer\n\n        roadmap_count = models.Subquery(\n            Roadmap.objects\n            .filter(user=OuterRef('user'))\n            .order_by()\n            .values('user')\n            .annotate(rcount=Count('id'))\n            .values('rcount')[:1]\n        )\n        question_solved_count = models.Subquery(\n            Answer.objects\n            .filter(user=OuterRef('user'), is_correct=True)\n            .order_by()\n            .values('user')\n            .annotate(qcount=Count('id'))\n            .values('qcount')[:1]\n        )\n        return self.annotate(\n            total_roadmaps_generated=roadmap_count,\n            total_questions_solved=question_solved_count,\n        )\n\n\nclass UserProfile(models.Model):\n    user = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True)\n    learning_streak = models.IntegerField(blank=True, null=True)\n    strong_topics = ArrayField(\n        base_field=models.TextField(),\n        default=list,\n        blank=True,\n    )\n    weak_topics = ArrayField(\n        base_field=models.TextField(),\n        default=list,\n        blank=True,\n    )\n    average_accuracy = models.FloatField(blank=True, null=True)\n    avg_difficulty = models.FloatField(blank=True, null=True)\n    average_time_per_question = models.FloatField(blank=True, null=True)\n    taste_keywords_list = models.JSONField(default=list, blank=True)\n    embedding_list = models.JSONField(default=list, blank=True)\n    created_at = models.DateTimeField(auto_now_add=True, blank=True, null=True)\n    modified_at = models.DateTimeField(auto_now=True, blank=True, null=True)\n    objects = UserProfileQuerySet.as_manager()
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/servers/catalyst/users/models.py b/servers/catalyst/users/models.py
+--- a/servers/catalyst/users/models.py	(revision fa6186d7c3c864623242d9537f9908aac580225e)
++++ b/servers/catalyst/users/models.py	(date 1755947320821)
+@@ -1,9 +1,6 @@
+ from django.db import models
+ from django.contrib.auth.models import AbstractUser
+ from django.contrib.postgres.fields import ArrayField
+-from django.db import models
+-from django.contrib.postgres.fields import ArrayField
+-from django.db.models import Count, Q, Subquery, OuterRef
+ 
+ # Create your models here.
+ class User(AbstractUser):
+@@ -41,9 +38,17 @@
+         )
+ 
+ 
+-class UserProfile(models.Model):
+-    user = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True)
++class UserProfile( models.Model):
++    user = models.OneToOneField(User, on_delete=models.CASCADE,related_name='profile', primary_key=True)
+     learning_streak = models.IntegerField(blank=True, null=True)
++    bio = models.TextField(max_length=500, blank=True, null=True)
++    phone = models.CharField(max_length=20, blank=True, null=True)
++    profile_image = models.ImageField(
++        upload_to='profile_images/',
++        default='profile_images/default.jpg',
++        blank=True,
++        null=True
++    )
+     strong_topics = ArrayField(
+         base_field=models.TextField(),
+         default=list,
+@@ -60,5 +65,4 @@
+     taste_keywords_list = models.JSONField(default=list, blank=True)
+     embedding_list = models.JSONField(default=list, blank=True)
+     created_at = models.DateTimeField(auto_now_add=True, blank=True, null=True)
+-    modified_at = models.DateTimeField(auto_now=True, blank=True, null=True)
+-    objects = UserProfileQuerySet.as_manager()
+\ No newline at end of file
++    modified_at = models.DateTimeField(auto_now=True, blank=True, null=True)
+\ No newline at end of file
+Index: frontend/catalyst/src/app/app.routes.ts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import { NgModule } from '@angular/core';\nimport { RouterModule, Routes } from '@angular/router';\nimport { LoginPageComponent } from './components/cards/login-card/login-page.component';\nimport { QuestionCardComponent } from './components/cards/question-card/question-card.component';\nimport { UserProfileComponent } from './Pages/user-profile/user-profile.component';\nimport { LandingPage } from '@pages/landing-page/landing-page.component';\nimport { PromptPageComponent } from '@pages/prompt-page/prompt-page.component';\nimport { StudyPlanComponent } from \"@pages/study-plan/study-plan.component\";\nimport { RoadmapListComponent } from \"@app/Pages/roadmap-page/roadmap-list/roadmap-list.component\";\nimport { RoadmapPageComponent } from \"@pages/roadmap-page/roadmap-page.component\";\n\n\n\n\n\nexport const routes: Routes = [\n    { path: '', redirectTo: '/home', pathMatch: 'full' },\n    { path: 'home', component: LandingPage },\n    { path: 'prompt', component: PromptPageComponent },\n    { path: 'questionCard', component: QuestionCardComponent },\n    { path: 'userHome', component: UserProfileComponent },\n    { path: 'plan', component: StudyPlanComponent },\n    { path: 'roadmap', component: RoadmapPageComponent }\n\n];\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/frontend/catalyst/src/app/app.routes.ts b/frontend/catalyst/src/app/app.routes.ts
+--- a/frontend/catalyst/src/app/app.routes.ts	(revision fa6186d7c3c864623242d9537f9908aac580225e)
++++ b/frontend/catalyst/src/app/app.routes.ts	(date 1755947675000)
+@@ -20,6 +20,8 @@
+     { path: 'questionCard', component: QuestionCardComponent },
+     { path: 'userHome', component: UserProfileComponent },
+     { path: 'plan', component: StudyPlanComponent },
+-    { path: 'roadmap', component: RoadmapPageComponent }
++    { path: 'roadmap', component: RoadmapPageComponent },
++    { path: 'login', component: LoginPageComponent },
++
+ 
+ ];
+Index: servers/catalyst/users/views.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>from django.shortcuts import render\nfrom rest_framework.views import APIView\nfrom .serializers import UserSerializer\nfrom rest_framework.response import Response\nfrom rest_framework.exceptions import AuthenticationFailed\nfrom .models import User\nimport jwt, datetime\n\n\n# Create your views here.\nclass RegisterView(APIView):\n    def post(self, request):\n        serializer = UserSerializer(data=request.data)\n        serializer.is_valid(raise_exception=True)\n        serializer.save()\n        return Response(serializer.data)\n\nclass LoginView(APIView):\n    def post(self, request):\n        email = request.data[\"email\"]\n        password = request.data[\"password\"]\n\n        user = User.objects.filter(email = email).first()\n\n        if user is None:\n            raise AuthenticationFailed(\"User Not Found\")\n\n        if not user.check_password(password):\n            raise AuthenticationFailed(\"Incorrect Password\")\n\n        payload = {\n            \"id\" : user.id,\n            \"exp\" : datetime.datetime.utcnow() + datetime.timedelta(minutes = 60),\n            \"iat\" : datetime.datetime.utcnow()\n        }\n\n        token = jwt.encode(payload, \"secret\" , algorithm = \"HS256\")\n\n        response = Response()\n\n        response.set_cookie(key = \"jwt\" , value = token, httponly = True)\n        response.data = {\n            \"jwt\": token\n        }\n\n        return response\n\nclass UserView(APIView):\n    def get(self,request):\n        token = request.COOKIES.get(\"jwt\")\n\n        if not token:\n            raise AuthenticationFailed(\"Unauthenticated\")\n\n        try:\n            payload = jwt.decode(token , \"secret\" , algorithms= [\"HS256\"] )\n        except jwt.ExpiredSignatureError:\n            raise AuthenticationFailed(\"Unauthenticated\")\n\n        user = User.objects.filter(id = (payload[\"id\"])).first()\n\n        serializer = UserSerializer(user)\n        return Response(serializer.data)\n\nclass LogoutView(APIView):\n    def post(self, request):\n        response = Response()\n        response.delete_cookie(\"jwt\")\n        response.data = {\n            \"message\" : \"success\"\n        }\n        return response\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/servers/catalyst/users/views.py b/servers/catalyst/users/views.py
+--- a/servers/catalyst/users/views.py	(revision fa6186d7c3c864623242d9537f9908aac580225e)
++++ b/servers/catalyst/users/views.py	(date 1755947320939)
+@@ -3,8 +3,17 @@
+ from .serializers import UserSerializer
+ from rest_framework.response import Response
+ from rest_framework.exceptions import AuthenticationFailed
+-from .models import User
++from .models import User, UserProfile
+ import jwt, datetime
++from rest_framework.parsers import MultiPartParser, FormParser
++from rest_framework import status
++from .serializers import (
++    UserProfileSerializer,
++    UserWithProfileSerializer,
++    ProfileUpdateSerializer,
++    ChangePasswordSerializer
++)
++
+ 
+ 
+ # Create your views here.
+@@ -70,3 +79,209 @@
+             "message" : "success"
+         }
+         return response
++
++
++
++class BaseAuthenticatedView(APIView):
++    """Base class that handles JWT cookie authentication"""
++
++    def get_user_from_token(self, request):
++        """Extract and validate user from JWT cookie"""
++        token = request.COOKIES.get("jwt")
++
++        if not token:
++            raise AuthenticationFailed("Unauthenticated")
++
++        try:
++            payload = jwt.decode(token, "secret", algorithms=["HS256"])
++        except jwt.ExpiredSignatureError:
++            raise AuthenticationFailed("Token expired")
++        except jwt.InvalidTokenError:
++            raise AuthenticationFailed("Invalid token")
++
++        user = User.objects.filter(id=payload["id"]).first()
++        if not user:
++            raise AuthenticationFailed("User not found")
++
++        return user
++
++
++class ProfileView(BaseAuthenticatedView):
++    """Get user profile"""
++
++    def get(self, request):
++        user = self.get_user_from_token(request)
++
++        # Ensure profile exists
++        profile, created = UserProfile.objects.get_or_create(user=user)
++
++        serializer = UserProfileSerializer(profile)
++        return Response(serializer.data)
++
++
++class ProfileUpdateView(BaseAuthenticatedView):
++    """Update user profile"""
++
++    def put(self, request):
++        return self._update_profile(request, partial=False)
++
++    def patch(self, request):
++        return self._update_profile(request, partial=True)
++
++    def _update_profile(self, request, partial=False):
++        user = self.get_user_from_token(request)
++
++        # Get or create profile
++        profile, created = UserProfile.objects.get_or_create(user=user)
++
++        serializer = ProfileUpdateSerializer(
++            profile,
++            data=request.data,
++            partial=partial
++        )
++
++        if serializer.is_valid():
++            serializer.save()
++            # Return full profile data
++            response_serializer = UserProfileSerializer(profile)
++            return Response(response_serializer.data)
++
++        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
++
++
++class UserWithProfileView(BaseAuthenticatedView):
++    """Get user data with profile - extends your existing UserView"""
++
++    def get(self, request):
++        user = self.get_user_from_token(request)
++
++        # Ensure profile exists
++        profile, created = UserProfile.objects.get_or_create(user=user)
++
++        serializer = UserWithProfileSerializer(user)
++        return Response(serializer.data)
++
++
++class ChangePasswordView(BaseAuthenticatedView):
++    """Change user password"""
++
++    def post(self, request):
++        user = self.get_user_from_token(request)
++
++        serializer = ChangePasswordSerializer(data=request.data)
++
++        if serializer.is_valid():
++            # Check old password
++            if not user.check_password(serializer.validated_data['old_password']):
++                return Response(
++                    {'error': 'Old password is incorrect'},
++                    status=status.HTTP_400_BAD_REQUEST
++                )
++
++            # Set new password
++            user.set_password(serializer.validated_data['new_password'])
++            user.save()
++
++            return Response({'message': 'Password changed successfully'})
++
++        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
++
++
++class ProfileImageUploadView(BaseAuthenticatedView):
++    """Upload profile image"""
++    parser_classes = [MultiPartParser, FormParser]
++
++    def post(self, request):
++        user = self.get_user_from_token(request)
++
++        # Get or create profile
++        profile, created = UserProfile.objects.get_or_create(user=user)
++
++        if 'profile_image' not in request.FILES:
++            return Response(
++                {'error': 'No image file provided'},
++                status=status.HTTP_400_BAD_REQUEST
++            )
++
++        # Validate file type
++        file = request.FILES['profile_image']
++        if not file.content_type.startswith('image/'):
++            return Response(
++                {'error': 'File must be an image'},
++                status=status.HTTP_400_BAD_REQUEST
++            )
++
++        # Validate file size (max 5MB)
++        if file.size > 5 * 1024 * 1024:
++            return Response(
++                {'error': 'Image file too large (max 5MB)'},
++                status=status.HTTP_400_BAD_REQUEST
++            )
++
++        profile.profile_image = file
++        profile.save()
++
++        serializer = UserProfileSerializer(profile)
++        return Response({
++            'message': 'Profile image uploaded successfully',
++            'profile': serializer.data
++        })
++
++    def delete(self, request):
++        """Remove profile image"""
++        user = self.get_user_from_token(request)
++
++        try:
++            profile = user.profile
++            if profile.profile_image and profile.profile_image.name != 'profile_images/default.jpg':
++                profile.profile_image.delete()
++                profile.profile_image = 'profile_images/default.jpg'
++                profile.save()
++
++                return Response({'message': 'Profile image removed successfully'})
++            else:
++                return Response(
++                    {'error': 'No profile image to remove'},
++                    status=status.HTTP_400_BAD_REQUEST
++                )
++        except UserProfile.DoesNotExist:
++            return Response(
++                {'error': 'Profile not found'},
++                status=status.HTTP_404_NOT_FOUND
++            )
++
++
++class ProfileStatsView(BaseAuthenticatedView):
++    """Get profile statistics and completion status"""
++
++    def get(self, request):
++        user = self.get_user_from_token(request)
++
++        try:
++            profile = user.profile
++
++            # Calculate profile completion
++            fields_to_check = ['bio', 'phone', 'location', 'birth_date']
++            completed_fields = sum(1 for field in fields_to_check if getattr(profile, field))
++
++            has_image = (profile.profile_image and
++                        profile.profile_image.name != 'profile_images/default.jpg')
++
++            completion_percentage = ((completed_fields + (1 if has_image else 0)) /
++                                   (len(fields_to_check) + 1)) * 100
++
++            stats = {
++                'profile_completion': round(completion_percentage),
++                'has_profile_image': has_image,
++                'completed_fields': completed_fields,
++                'total_fields': len(fields_to_check) + 1,
++                'missing_fields': [field for field in fields_to_check
++                                 if not getattr(profile, field)],
++                'last_updated': profile.updated_at,
++                'member_since': profile.created_at,
++            }
++
++            return Response(stats)
++
++        except UserProfile.DoesNotExist:
++            return Response({'error': 'Profile not found'}, status=404)
+Index: .idea/material_theme_project_new.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/material_theme_project_new.xml b/.idea/material_theme_project_new.xml
+new file mode 100644
+--- /dev/null	(date 1755947320868)
++++ b/.idea/material_theme_project_new.xml	(date 1755947320868)
+@@ -0,0 +1,12 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<project version="4">
++  <component name="MaterialThemeProjectNewConfig">
++    <option name="metadata">
++      <MTProjectMetadataState>
++        <option name="migrated" value="true" />
++        <option name="pristineConfig" value="false" />
++        <option name="userId" value="7365b1e8:198a18dab02:-7ffd" />
++      </MTProjectMetadataState>
++    </option>
++  </component>
++</project>
+\ No newline at end of file
+Index: .idea/modules.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/modules.xml b/.idea/modules.xml
+new file mode 100644
+--- /dev/null	(date 1755947320856)
++++ b/.idea/modules.xml	(date 1755947320856)
+@@ -0,0 +1,8 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<project version="4">
++  <component name="ProjectModuleManager">
++    <modules>
++      <module fileurl="file://$PROJECT_DIR$/.idea/Catalyst.iml" filepath="$PROJECT_DIR$/.idea/Catalyst.iml" />
++    </modules>
++  </component>
++</project>
+\ No newline at end of file
+Index: .idea/workspace.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<project version=\"4\">\n  <component name=\"AutoImportSettings\">\n    <option name=\"autoReloadType\" value=\"SELECTIVE\" />\n  </component>\n  <component name=\"ChangeListManager\">\n    <list default=\"true\" id=\"346ef7fb-361c-4837-bbe6-36ebf939613a\" name=\"Changes\" comment=\"\">\n      <change beforePath=\"$PROJECT_DIR$/.idea/Catalyst.iml\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/.idea/Catalyst.iml\" afterDir=\"false\" />\n      <change beforePath=\"$PROJECT_DIR$/.idea/workspace.xml\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/.idea/workspace.xml\" afterDir=\"false\" />\n      <change beforePath=\"$PROJECT_DIR$/frontend/catalyst/.angular/cache/17.3.17/catalyst/.tsbuildinfo\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/frontend/catalyst/.angular/cache/17.3.17/catalyst/.tsbuildinfo\" afterDir=\"false\" />\n      <change beforePath=\"$PROJECT_DIR$/frontend/catalyst/.angular/cache/17.3.17/vite/deps/_metadata.json\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/frontend/catalyst/.angular/cache/17.3.17/vite/deps/_metadata.json\" afterDir=\"false\" />\n      <change beforePath=\"$PROJECT_DIR$/frontend/catalyst/package.json\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/frontend/catalyst/package.json\" afterDir=\"false\" />\n      <change beforePath=\"$PROJECT_DIR$/frontend/catalyst/src/app/Pages/landing-page/landing-page.component.html\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/frontend/catalyst/src/app/Pages/landing-page/landing-page.component.html\" afterDir=\"false\" />\n      <change beforePath=\"$PROJECT_DIR$/frontend/catalyst/src/app/Pages/landing-page/landing-page.component.scss\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/frontend/catalyst/src/app/Pages/landing-page/landing-page.component.scss\" afterDir=\"false\" />\n      <change beforePath=\"$PROJECT_DIR$/frontend/catalyst/src/app/Pages/landing-page/landing-page.component.ts\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/frontend/catalyst/src/app/Pages/landing-page/landing-page.component.ts\" afterDir=\"false\" />\n      <change beforePath=\"$PROJECT_DIR$/frontend/catalyst/src/app/app.component.ts\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/frontend/catalyst/src/app/app.component.ts\" afterDir=\"false\" />\n      <change beforePath=\"$PROJECT_DIR$/frontend/catalyst/src/app/nav-bar/nav-bar.component.scss\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/frontend/catalyst/src/app/nav-bar/nav-bar.component.scss\" afterDir=\"false\" />\n    </list>\n    <option name=\"SHOW_DIALOG\" value=\"false\" />\n    <option name=\"HIGHLIGHT_CONFLICTS\" value=\"true\" />\n    <option name=\"HIGHLIGHT_NON_ACTIVE_CHANGELIST\" value=\"false\" />\n    <option name=\"LAST_RESOLUTION\" value=\"IGNORE\" />\n  </component>\n  <component name=\"Git.Settings\">\n    <option name=\"RECENT_BRANCH_BY_REPOSITORY\">\n      <map>\n        <entry key=\"$PROJECT_DIR$\" value=\"Migrations\" />\n      </map>\n    </option>\n    <option name=\"RECENT_GIT_ROOT_PATH\" value=\"$PROJECT_DIR$\" />\n  </component>\n  <component name=\"GitHubPullRequestSearchHistory\">{\n  &quot;lastFilter&quot;: {\n    &quot;state&quot;: &quot;OPEN&quot;,\n    &quot;assignee&quot;: &quot;Saksham20402&quot;\n  }\n}</component>\n  <component name=\"GithubPullRequestsUISettings\"><![CDATA[{\n  \"selectedUrlAndAccountId\": {\n    \"url\": \"git@github.com:Rexaryan1/Catalyst.git\",\n    \"accountId\": \"2bb71c88-293a-4248-afcf-cf86ecabef17\"\n  }\n}]]></component>\n  <component name=\"ProjectColorInfo\">{\n  &quot;associatedIndex&quot;: 6\n}</component>\n  <component name=\"ProjectId\" id=\"2z8MWlzaUyhEe8IMgojCrbjQT2G\" />\n  <component name=\"ProjectViewState\">\n    <option name=\"hideEmptyMiddlePackages\" value=\"true\" />\n    <option name=\"showLibraryContents\" value=\"true\" />\n  </component>\n  <component name=\"PropertiesComponent\"><![CDATA[{\n  \"keyToString\": {\n    \"ModuleVcsDetector.initialDetectionPerformed\": \"true\",\n    \"RunOnceActivity.OpenDjangoStructureViewOnStart\": \"true\",\n    \"RunOnceActivity.ShowReadmeOnStart\": \"true\",\n    \"RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager\": \"true\",\n    \"RunOnceActivity.git.unshallow\": \"true\",\n    \"git-widget-placeholder\": \"HomePage\",\n    \"junie.onboarding.icon.badge.shown\": \"true\",\n    \"node.js.detected.package.eslint\": \"true\",\n    \"node.js.detected.package.tslint\": \"true\",\n    \"node.js.selected.package.eslint\": \"(autodetect)\",\n    \"node.js.selected.package.tslint\": \"(autodetect)\",\n    \"nodejs_package_manager_path\": \"npm\",\n    \"ts.external.directory.path\": \"/Applications/WebStorm.app/Contents/plugins/javascript-plugin/jsLanguageServicesImpl/external\",\n    \"vue.rearranger.settings.migration\": \"true\"\n  }\n}]]></component>\n  <component name=\"RunManager\">\n    <configuration name=\"Catalyst\" type=\"Python.DjangoServer\" factoryName=\"Django server\">\n      <module name=\"Catalyst\" />\n      <option name=\"ENV_FILES\" value=\"\" />\n      <option name=\"INTERPRETER_OPTIONS\" value=\"\" />\n      <option name=\"PARENT_ENVS\" value=\"true\" />\n      <envs>\n        <env name=\"PYTHONUNBUFFERED\" value=\"1\" />\n      </envs>\n      <option name=\"SDK_HOME\" value=\"\" />\n      <option name=\"WORKING_DIRECTORY\" value=\"\" />\n      <option name=\"IS_MODULE_SDK\" value=\"false\" />\n      <option name=\"ADD_CONTENT_ROOTS\" value=\"true\" />\n      <option name=\"ADD_SOURCE_ROOTS\" value=\"true\" />\n      <option name=\"launchJavascriptDebuger\" value=\"false\" />\n      <option name=\"port\" value=\"8000\" />\n      <option name=\"host\" value=\"\" />\n      <option name=\"additionalOptions\" value=\"\" />\n      <option name=\"browserUrl\" value=\"\" />\n      <option name=\"runTestServer\" value=\"false\" />\n      <option name=\"runNoReload\" value=\"false\" />\n      <option name=\"useCustomRunCommand\" value=\"false\" />\n      <option name=\"customRunCommand\" value=\"\" />\n      <method v=\"2\" />\n    </configuration>\n  </component>\n  <component name=\"SharedIndexes\">\n    <attachedChunks>\n      <set>\n        <option value=\"bundled-js-predefined-d6986cc7102b-b26f3e71634d-JavaScript-WS-251.26094.131\" />\n      </set>\n    </attachedChunks>\n  </component>\n  <component name=\"TaskManager\">\n    <task active=\"true\" id=\"Default\" summary=\"Default task\">\n      <changelist id=\"346ef7fb-361c-4837-bbe6-36ebf939613a\" name=\"Changes\" comment=\"\" />\n      <created>1751108282548</created>\n      <option name=\"number\" value=\"Default\" />\n      <option name=\"presentableId\" value=\"Default\" />\n      <updated>1751108282548</updated>\n      <workItem from=\"1751108283932\" duration=\"1373000\" />\n      <workItem from=\"1751643577129\" duration=\"6264000\" />\n      <workItem from=\"1752165338183\" duration=\"369000\" />\n    </task>\n    <servers />\n  </component>\n  <component name=\"TypeScriptGeneratedFilesManager\">\n    <option name=\"version\" value=\"3\" />\n  </component>\n</project>
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/workspace.xml b/.idea/workspace.xml
+--- a/.idea/workspace.xml	(revision fa6186d7c3c864623242d9537f9908aac580225e)
++++ b/.idea/workspace.xml	(date 1755949657909)
+@@ -5,26 +5,30 @@
+   </component>
+   <component name="ChangeListManager">
+     <list default="true" id="346ef7fb-361c-4837-bbe6-36ebf939613a" name="Changes" comment="">
++      <change afterPath="$PROJECT_DIR$/.idea/material_theme_project_new.xml" afterDir="false" />
++      <change afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
+       <change beforePath="$PROJECT_DIR$/.idea/Catalyst.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/Catalyst.iml" afterDir="false" />
++      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/frontend/catalyst/.angular/cache/17.3.17/catalyst/.tsbuildinfo" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/catalyst/.angular/cache/17.3.17/catalyst/.tsbuildinfo" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/frontend/catalyst/.angular/cache/17.3.17/vite/deps/_metadata.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/catalyst/.angular/cache/17.3.17/vite/deps/_metadata.json" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/frontend/catalyst/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/catalyst/package.json" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/frontend/catalyst/src/app/Pages/landing-page/landing-page.component.html" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/catalyst/src/app/Pages/landing-page/landing-page.component.html" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/frontend/catalyst/src/app/Pages/landing-page/landing-page.component.scss" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/catalyst/src/app/Pages/landing-page/landing-page.component.scss" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/frontend/catalyst/src/app/Pages/landing-page/landing-page.component.ts" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/catalyst/src/app/Pages/landing-page/landing-page.component.ts" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/frontend/catalyst/src/app/app.component.ts" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/catalyst/src/app/app.component.ts" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/frontend/catalyst/src/app/nav-bar/nav-bar.component.scss" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/catalyst/src/app/nav-bar/nav-bar.component.scss" afterDir="false" />
++      <change beforePath="$PROJECT_DIR$/frontend/catalyst/src/app/app.routes.ts" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/catalyst/src/app/app.routes.ts" afterDir="false" />
++      <change beforePath="$PROJECT_DIR$/servers/catalyst/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/servers/catalyst/requirements.txt" afterDir="false" />
++      <change beforePath="$PROJECT_DIR$/servers/catalyst/users/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/servers/catalyst/users/models.py" afterDir="false" />
++      <change beforePath="$PROJECT_DIR$/servers/catalyst/users/serializers.py" beforeDir="false" afterPath="$PROJECT_DIR$/servers/catalyst/users/serializers.py" afterDir="false" />
++      <change beforePath="$PROJECT_DIR$/servers/catalyst/users/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/servers/catalyst/users/urls.py" afterDir="false" />
++      <change beforePath="$PROJECT_DIR$/servers/catalyst/users/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/servers/catalyst/users/views.py" afterDir="false" />
+     </list>
+     <option name="SHOW_DIALOG" value="false" />
+     <option name="HIGHLIGHT_CONFLICTS" value="true" />
+     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+     <option name="LAST_RESOLUTION" value="IGNORE" />
++  </component>
++  <component name="DjangoConsoleOptions" custom-start-script="import sys; print('Python %s on %s' % (sys.version, sys.platform))&#10;import django; print('Django %s' % django.get_version())&#10;sys.path.extend([WORKING_DIR_AND_PYTHON_PATHS])&#10;if 'setup' in dir(django): django.setup()&#10;import django_manage_shell; django_manage_shell.run(PROJECT_ROOT)">
++    <option name="myCustomStartScript" value="import sys; print('Python %s on %s' % (sys.version, sys.platform))&#10;import django; print('Django %s' % django.get_version())&#10;sys.path.extend([WORKING_DIR_AND_PYTHON_PATHS])&#10;if 'setup' in dir(django): django.setup()&#10;import django_manage_shell; django_manage_shell.run(PROJECT_ROOT)" />
+   </component>
+   <component name="Git.Settings">
+     <option name="RECENT_BRANCH_BY_REPOSITORY">
+       <map>
+-        <entry key="$PROJECT_DIR$" value="Migrations" />
++        <entry key="$PROJECT_DIR$" value="JWT" />
+       </map>
+     </option>
+     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+@@ -35,12 +39,15 @@
+     &quot;assignee&quot;: &quot;Saksham20402&quot;
+   }
+ }</component>
+-  <component name="GithubPullRequestsUISettings"><![CDATA[{
+-  "selectedUrlAndAccountId": {
+-    "url": "git@github.com:Rexaryan1/Catalyst.git",
+-    "accountId": "2bb71c88-293a-4248-afcf-cf86ecabef17"
++  <component name="GithubPullRequestsUISettings">{
++  &quot;selectedUrlAndAccountId&quot;: {
++    &quot;url&quot;: &quot;git@github.com:Rexaryan1/Catalyst.git&quot;,
++    &quot;accountId&quot;: &quot;e2bb492b-6587-4ef0-881b-3a0a923bfd06&quot;
+   }
+-}]]></component>
++}</component>
++  <component name="ProblemsViewState">
++    <option name="selectedTabId" value="ProjectErrors" />
++  </component>
+   <component name="ProjectColorInfo">{
+   &quot;associatedIndex&quot;: 6
+ }</component>
+@@ -51,23 +58,34 @@
+   </component>
+   <component name="PropertiesComponent"><![CDATA[{
+   "keyToString": {
++    "Django Server.Catalyst.executor": "Run",
+     "ModuleVcsDetector.initialDetectionPerformed": "true",
+     "RunOnceActivity.OpenDjangoStructureViewOnStart": "true",
+     "RunOnceActivity.ShowReadmeOnStart": "true",
+     "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager": "true",
++    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+     "RunOnceActivity.git.unshallow": "true",
+-    "git-widget-placeholder": "HomePage",
++    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
++    "git-widget-placeholder": "main",
+     "junie.onboarding.icon.badge.shown": "true",
+     "node.js.detected.package.eslint": "true",
+     "node.js.detected.package.tslint": "true",
+     "node.js.selected.package.eslint": "(autodetect)",
+     "node.js.selected.package.tslint": "(autodetect)",
+     "nodejs_package_manager_path": "npm",
+-    "ts.external.directory.path": "/Applications/WebStorm.app/Contents/plugins/javascript-plugin/jsLanguageServicesImpl/external",
++    "npm.start.executor": "Run",
++    "settings.editor.selected.configurable": "preferences.pluginManager",
++    "to.speed.mode.migration.done": "true",
++    "ts.external.directory.path": "/Users/sakshamlall/Documents/Projects/Catalyst/frontend/catalyst/node_modules/typescript/lib",
+     "vue.rearranger.settings.migration": "true"
++  },
++  "keyToStringList": {
++    "DatabaseDriversLRU": [
++      "postgresql"
++    ]
+   }
+ }]]></component>
+-  <component name="RunManager">
++  <component name="RunManager" selected="Django Server.Catalyst">
+     <configuration name="Catalyst" type="Python.DjangoServer" factoryName="Django server">
+       <module name="Catalyst" />
+       <option name="ENV_FILES" value="" />
+@@ -75,12 +93,24 @@
+       <option name="PARENT_ENVS" value="true" />
+       <envs>
+         <env name="PYTHONUNBUFFERED" value="1" />
++        <env name="DJANGO_SETTINGS_MODULE" value="catalyst.settings" />
+       </envs>
+       <option name="SDK_HOME" value="" />
++      <option name="SDK_NAME" value="Python 3.12" />
+       <option name="WORKING_DIRECTORY" value="" />
+       <option name="IS_MODULE_SDK" value="false" />
+       <option name="ADD_CONTENT_ROOTS" value="true" />
+       <option name="ADD_SOURCE_ROOTS" value="true" />
++      <EXTENSION ID="net.ashald.envfile">
++        <option name="IS_ENABLED" value="false" />
++        <option name="IS_SUBST" value="false" />
++        <option name="IS_PATH_MACRO_SUPPORTED" value="false" />
++        <option name="IS_IGNORE_MISSING_FILES" value="false" />
++        <option name="IS_ENABLE_EXPERIMENTAL_INTEGRATIONS" value="false" />
++        <ENTRIES>
++          <ENTRY IS_ENABLED="true" PARSER="runconfig" IS_EXECUTABLE="false" />
++        </ENTRIES>
++      </EXTENSION>
+       <option name="launchJavascriptDebuger" value="false" />
+       <option name="port" value="8000" />
+       <option name="host" value="" />
+@@ -92,13 +122,31 @@
+       <option name="customRunCommand" value="" />
+       <method v="2" />
+     </configuration>
++    <configuration name="start" type="js.build_tools.npm" nameIsGenerated="true">
++      <package-json value="$PROJECT_DIR$/frontend/catalyst/package.json" />
++      <command value="run" />
++      <scripts>
++        <script value="start" />
++      </scripts>
++      <node-interpreter value="project" />
++      <envs />
++      <method v="2" />
++    </configuration>
++    <list>
++      <item itemvalue="Django Server.Catalyst" />
++      <item itemvalue="npm.start" />
++    </list>
+   </component>
+   <component name="SharedIndexes">
+     <attachedChunks>
+       <set>
+-        <option value="bundled-js-predefined-d6986cc7102b-b26f3e71634d-JavaScript-WS-251.26094.131" />
++        <option value="bundled-js-predefined-d6986cc7102b-e03c56caf84a-JavaScript-PY-252.23892.439" />
++        <option value="bundled-python-sdk-b3ae9b5d7125-f0eec537fc84-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-252.23892.439" />
+       </set>
+     </attachedChunks>
++  </component>
++  <component name="StructureViewState">
++    <option name="selectedTab" value="Logical" />
+   </component>
+   <component name="TaskManager">
+     <task active="true" id="Default" summary="Default task">
+@@ -110,10 +158,17 @@
+       <workItem from="1751108283932" duration="1373000" />
+       <workItem from="1751643577129" duration="6264000" />
+       <workItem from="1752165338183" duration="369000" />
++      <workItem from="1754843128372" duration="3575000" />
++      <workItem from="1755057079664" duration="10486000" />
++      <workItem from="1755514039613" duration="12785000" />
+     </task>
+     <servers />
+   </component>
+   <component name="TypeScriptGeneratedFilesManager">
+     <option name="version" value="3" />
+   </component>
++  <component name="UnknownFeatures">
++    <option featureType="dependencySupport" implementationName="javascript:npm:@angular/core" />
++    <option featureType="dependencySupport" implementationName="javascript:npm:karma" />
++  </component>
+ </project>
+\ No newline at end of file
+Index: servers/catalyst/users/urls.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>from django.contrib import admin\nfrom django.urls import path\nfrom . import views\n\nurlpatterns = [\n    path(\"register\", views.RegisterView.as_view(), name=\"register\"),\n    path(\"login\" , views.LoginView.as_view(), name = \"login\"),\n    path(\"user\" , views.UserView.as_view()),\n    path(\"logout\" , views.LogoutView.as_view())\n]\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/servers/catalyst/users/urls.py b/servers/catalyst/users/urls.py
+--- a/servers/catalyst/users/urls.py	(revision fa6186d7c3c864623242d9537f9908aac580225e)
++++ b/servers/catalyst/users/urls.py	(date 1755947320906)
+@@ -5,6 +5,15 @@
+ urlpatterns = [
+     path("register", views.RegisterView.as_view(), name="register"),
+     path("login" , views.LoginView.as_view(), name = "login"),
+-    path("user" , views.UserView.as_view()),
+-    path("logout" , views.LogoutView.as_view())
++    path("user", views.UserView.as_view(), name="user"),  # Basic user info
++    path("logout", views.LogoutView.as_view(), name="logout"),
++
++    # New profile endpoints
++    path("user/profile", views.UserWithProfileView.as_view(), name="user-with-profile"),
++    path("profile", views.ProfileView.as_view(), name="profile"),
++    path("profile/update", views.ProfileUpdateView.as_view(), name="profile-update"),
++    path("profile/image", views.ProfileImageUploadView.as_view(), name="profile-image"),
++    path("profile/stats", views.ProfileStatsView.as_view(), name="profile-stats"),
++    path("user/change-password", views.ChangePasswordView.as_view(), name="change-password"),
+ ]
++
+Index: .idea/Catalyst.iml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<module version=\"4\">\n  <component name=\"PyDocumentationSettings\">\n    <option name=\"format\" value=\"PLAIN\" />\n    <option name=\"myDocStringFormat\" value=\"Plain\" />\n  </component>\n  <component name=\"TemplatesService\">\n    <option name=\"TEMPLATE_CONFIGURATION\" value=\"Django\" />\n    <option name=\"TEMPLATE_FOLDERS\">\n      <list>\n        <option value=\"$MODULE_DIR$/servers/catalyst/dashboard/templates\" />\n      </list>\n    </option>\n  </component>\n</module>
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/Catalyst.iml b/.idea/Catalyst.iml
+--- a/.idea/Catalyst.iml	(revision fa6186d7c3c864623242d9537f9908aac580225e)
++++ b/.idea/Catalyst.iml	(date 1755947320921)
+@@ -1,8 +1,27 @@
+ <?xml version="1.0" encoding="UTF-8"?>
+-<module version="4">
++<module type="PYTHON_MODULE" version="4">
++  <component name="FacetManager">
++    <facet type="django" name="Django">
++      <configuration>
++        <option name="rootFolder" value="$MODULE_DIR$/servers/catalyst" />
++        <option name="settingsModule" value="catalyst/settings.py" />
++        <option name="manageScript" value="$MODULE_DIR$/servers/catalyst/manage.py" />
++        <option name="environment" value="&lt;map/&gt;" />
++        <option name="doNotUseTestRunner" value="false" />
++        <option name="trackFilePattern" value="migrations" />
++      </configuration>
++    </facet>
++  </component>
++  <component name="NewModuleRootManager">
++    <content url="file://$MODULE_DIR$">
++      <sourceFolder url="file://$MODULE_DIR$/servers/catalyst" isTestSource="false" />
++    </content>
++    <orderEntry type="jdk" jdkName="Python 3.12 (PyCharmMiscProject)" jdkType="Python SDK" />
++    <orderEntry type="sourceFolder" forTests="false" />
++  </component>
+   <component name="PyDocumentationSettings">
+-    <option name="format" value="PLAIN" />
+-    <option name="myDocStringFormat" value="Plain" />
++    <option name="format" value="GOOGLE" />
++    <option name="myDocStringFormat" value="Google" />
+   </component>
+   <component name="TemplatesService">
+     <option name="TEMPLATE_CONFIGURATION" value="Django" />
+Index: .idea/misc.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<project version=\"4\">\n  <component name=\"Black\">\n    <option name=\"sdkName\" value=\"Python 3.12 (Catalyst-main 2)\" />\n  </component>\n  <component name=\"ProjectRootManager\" version=\"2\" project-jdk-name=\"Python 3.12 (Catalyst-main 2)\" project-jdk-type=\"Python SDK\" />\n</project>
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/misc.xml b/.idea/misc.xml
+--- a/.idea/misc.xml	(revision fa6186d7c3c864623242d9537f9908aac580225e)
++++ b/.idea/misc.xml	(date 1755947320932)
+@@ -3,5 +3,5 @@
+   <component name="Black">
+     <option name="sdkName" value="Python 3.12 (Catalyst-main 2)" />
+   </component>
+-  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.12 (Catalyst-main 2)" project-jdk-type="Python SDK" />
++  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.12 (PyCharmMiscProject)" project-jdk-type="Python SDK" />
+ </project>
+\ No newline at end of file
+Index: servers/catalyst/users/serializers.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>from rest_framework import serializers\nfrom .models import User\n\nclass UserSerializer(serializers.ModelSerializer):\n    class Meta:\n        model = User\n        fields = ['id', 'name', 'email', 'password']\n        extra_kwargs = {\n            'password': {'write_only': True}\n        }\n\n    def create(self, validated_data):\n        password = validated_data.pop('password' , None)\n        instance = self.Meta.model(**validated_data)\n        if password is not None:\n            instance.set_password(password)\n        instance.save()\n        return instance\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/servers/catalyst/users/serializers.py b/servers/catalyst/users/serializers.py
+--- a/servers/catalyst/users/serializers.py	(revision fa6186d7c3c864623242d9537f9908aac580225e)
++++ b/servers/catalyst/users/serializers.py	(date 1755947320956)
+@@ -1,5 +1,5 @@
+ from rest_framework import serializers
+-from .models import User
++from .models import User, UserProfile
+ 
+ class UserSerializer(serializers.ModelSerializer):
+     class Meta:
+@@ -16,3 +16,76 @@
+             instance.set_password(password)
+         instance.save()
+         return instance
++
++
++
++
++class UserProfileSerializer(serializers.ModelSerializer):
++    # skills_list = serializers.SerializerMethodField()
++
++    class Meta:
++        model = UserProfile
++        fields = [
++            'bio', 'phone','learning_streak', 'created_at', 'modified_at'
++        ]
++        read_only_fields = ['created_at', 'modified_at']
++
++
++
++    def validate_phone(self, value):
++        if value and len(value.replace(' ', '').replace('-', '')) < 10:
++            raise serializers.ValidationError("Phone number must be at least 10 digits.")
++        return value
++
++
++
++
++class UserWithProfileSerializer(serializers.ModelSerializer):
++    """Extended user serializer that includes profile data"""
++    profile = UserProfileSerializer(read_only=True)
++
++    class Meta:
++        model = User
++        fields = ['id', 'email', 'name', 'profile']  # Adjust fields based on your User model
++
++
++class ProfileUpdateSerializer(serializers.ModelSerializer):
++    """Serializer for updating profile data"""
++
++    class Meta:
++        model = UserProfile
++        fields = [
++            'bio', 'phone', #more fields as needed
++        ]
++
++    """def update(self, instance, validated_data):
++        # Handle skills_list separately
++        skills_list = validated_data.pop('skills_list', None)
++        if skills_list is not None:
++            instance.set_skills_list(skills_list)
++
++        # Update other fields
++        for attr, value in validated_data.items():
++            setattr(instance, attr, value)
++
++        instance.save()
++        return instance"""
++
++
++class ChangePasswordSerializer(serializers.Serializer):
++    old_password = serializers.CharField(required=True)
++    new_password = serializers.CharField(required=True, min_length=8)
++    confirm_password = serializers.CharField(required=True)
++
++    def validate(self, attrs):
++        if attrs['new_password'] != attrs['confirm_password']:
++            raise serializers.ValidationError("New passwords don't match.")
++        return attrs
++
++    def validate_new_password(self, value):
++        # Add password strength validation
++        if len(value) < 8:
++            raise serializers.ValidationError("Password must be at least 8 characters long.")
++        if value.isdigit():
++            raise serializers.ValidationError("Password cannot be entirely numeric.")
++        return value
+\ No newline at end of file

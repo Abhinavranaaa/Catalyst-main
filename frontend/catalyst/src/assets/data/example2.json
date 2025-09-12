@@ -1,0 +1,294 @@
+{
+  "success": true,
+  "data": {
+    "roadmapItems": [
+      {
+        "id": "linked-list-001",
+        "title": "Linked List",
+        "summary": "Master linear data structures with dynamic memory allocation. Learn to implement, traverse, and manipulate linked lists efficiently.",
+        "difficulty": "Hard",
+        "progressPercentage": 75,
+        "isSaved": false,
+        "isExpanded": false,
+        "questions": [
+          {
+            "id": "ll-reverse-001",
+            "title": "Reverse a Linked List",
+            "summary": "Given the head of a singly linked list, reverse the list and return the reversed list using iterative or recursive approach.",
+            "isBookmarked": false,
+            "difficulty": "Medium"
+          },
+          {
+            "id": "ll-cycle-002",
+            "title": "Detect Cycle in Linked List",
+            "summary": "Given head, determine if the linked list has a cycle using Floyd's cycle-finding algorithm (tortoise and hare).",
+            "isBookmarked": true,
+            "difficulty": "Medium"
+          },
+          {
+            "id": "ll-merge-003",
+            "title": "Merge Two Sorted Lists",
+            "summary": "Merge two sorted linked lists and return it as a sorted list. The list should be made by splicing together the nodes.",
+            "isBookmarked": false,
+            "difficulty": "Easy"
+          },
+          {
+            "id": "ll-remove-004",
+            "title": "Remove Nth Node From End",
+            "summary": "Given the head of a linked list, remove the nth node from the end of the list and return its head using two-pointer technique.",
+            "isBookmarked": true,
+            "difficulty": "Medium"
+          }
+        ]
+      },
+      {
+        "id": "graphs-002",
+        "title": "Graphs",
+        "summary": "Explore complex network structures and relationships. Understand graph traversal algorithms like BFS, DFS, and shortest path algorithms.",
+        "difficulty": "Hard",
+        "progressPercentage": 30,
+        "isSaved": true,
+        "isExpanded": false,
+        "questions": [
+          {
+            "id": "graph-clone-001",
+            "title": "Clone Graph",
+            "summary": "Return a deep copy of an undirected graph where each node contains a label and list of neighbors using DFS or BFS.",
+            "isBookmarked": false,
+            "difficulty": "Medium"
+          },
+          {
+            "id": "graph-schedule-002",
+            "title": "Course Schedule",
+            "summary": "Determine if you can finish all courses given prerequisites using topological sorting to detect cycles in directed graph.",
+            "isBookmarked": true,
+            "difficulty": "Medium"
+          },
+          {
+            "id": "graph-islands-003",
+            "title": "Number of Islands",
+            "summary": "Count the number of islands in a 2D binary grid representing water and land using DFS or BFS traversal.",
+            "isBookmarked": false,
+            "difficulty": "Medium"
+          },
+          {
+            "id": "graph-shortest-004",
+            "title": "Shortest Path in Binary Matrix",
+            "summary": "Find the shortest clear path from top-left to bottom-right in a binary matrix using BFS algorithm.",
+            "isBookmarked": false,
+            "difficulty": "Medium"
+          },
+          {
+            "id": "graph-ladder-005",
+            "title": "Word Ladder",
+            "summary": "Transform one word into another word by changing one letter at a time, each intermediate word must exist in dictionary.",
+            "isBookmarked": true,
+            "difficulty": "Hard"
+          }
+        ]
+      },
+      {
+        "id": "trees-003",
+        "title": "Trees",
+        "summary": "Dive into hierarchical data structures. Learn binary trees, BSTs, AVL trees, and tree traversal techniques.",
+        "difficulty": "Medium",
+        "progressPercentage": 60,
+        "isSaved": false,
+        "isExpanded": false,
+        "questions": [
+          {
+            "id": "tree-depth-001",
+            "title": "Maximum Depth of Binary Tree",
+            "summary": "Find the maximum depth of a binary tree using recursive DFS or iterative BFS approach.",
+            "isBookmarked": false,
+            "difficulty": "Easy"
+          },
+          {
+            "id": "tree-validate-002",
+            "title": "Validate Binary Search Tree",
+            "summary": "Determine if a given binary tree is a valid BST by checking in-order traversal or using bounds validation.",
+            "isBookmarked": true,
+            "difficulty": "Medium"
+          },
+          {
+            "id": "tree-lca-003",
+            "title": "Lowest Common Ancestor",
+            "summary": "Find the lowest common ancestor of two nodes in a binary tree using recursive approach with path tracking.",
+            "isBookmarked": false,
+            "difficulty": "Medium"
+          },
+          {
+            "id": "tree-level-004",
+            "title": "Binary Tree Level Order Traversal",
+            "summary": "Return the level order traversal of binary tree nodes values using BFS with queue data structure.",
+            "isBookmarked": false,
+            "difficulty": "Medium"
+          },
+          {
+            "id": "tree-serialize-005",
+            "title": "Serialize and Deserialize Binary Tree",
+            "summary": "Design algorithms to serialize a binary tree to string and deserialize string back to tree structure.",
+            "isBookmarked": true,
+            "difficulty": "Hard"
+          }
+        ]
+      },
+      {
+        "id": "recursion-004",
+        "title": "Recursion",
+        "summary": "Master the art of solving problems by breaking them into smaller subproblems. Understand base cases and recursive relationships.",
+        "difficulty": "Medium",
+        "progressPercentage": 85,
+        "isSaved": true,
+        "isExpanded": false,
+        "questions": [
+          {
+            "id": "rec-parentheses-001",
+            "title": "Generate Parentheses",
+            "summary": "Generate all combinations of well-formed parentheses for n pairs using backtracking and recursion.",
+            "isBookmarked": false,
+            "difficulty": "Medium"
+          },
+          {
+            "id": "rec-permutations-002",
+            "title": "Permutations",
+            "summary": "Return all possible permutations of an array of distinct integers using recursive backtracking algorithm.",
+            "isBookmarked": true,
+            "difficulty": "Medium"
+          },
+          {
+            "id": "rec-subsets-003",
+            "title": "Subsets",
+            "summary": "Return all possible subsets (power set) of an integer array using bit manipulation or backtracking.",
+            "isBookmarked": false,
+            "difficulty": "Medium"
+          },
+          {
+            "id": "rec-wordsearch-004",
+            "title": "Word Search",
+            "summary": "Find if a word exists in a 2D board of characters using DFS backtracking with visited state management.",
+            "isBookmarked": true,
+            "difficulty": "Medium"
+          },
+          {
+            "id": "rec-nqueens-005",
+            "title": "N-Queens",
+            "summary": "Place n queens on an n×n chessboard so that no two queens attack each other using backtracking.",
+            "isBookmarked": false,
+            "difficulty": "Hard"
+          },
+          {
+            "id": "rec-combination-006",
+            "title": "Combination Sum",
+            "summary": "Find all unique combinations where candidate numbers sum to target using recursive backtracking with pruning.",
+            "isBookmarked": false,
+            "difficulty": "Medium"
+          }
+        ]
+      },
+      {
+        "id": "arrays-005",
+        "title": "Arrays",
+        "summary": "Master fundamental array operations and algorithms. Learn sorting, searching, two-pointer techniques, and sliding window patterns.",
+        "difficulty": "Easy",
+        "progressPercentage": 40,
+        "isSaved": false,
+        "isExpanded": false,
+        "questions": [
+          {
+            "id": "array-two-sum-001",
+            "title": "Two Sum",
+            "summary": "Find two numbers in an array that add up to a specific target using hash map for O(n) solution.",
+            "isBookmarked": true,
+            "difficulty": "Easy"
+          },
+          {
+            "id": "array-best-time-002",
+            "title": "Best Time to Buy and Sell Stock",
+            "summary": "Find the maximum profit from buying and selling stock once using single-pass algorithm.",
+            "isBookmarked": false,
+            "difficulty": "Easy"
+          },
+          {
+            "id": "array-container-003",
+            "title": "Container With Most Water",
+            "summary": "Find two lines that form a container holding the most water using two-pointer technique.",
+            "isBookmarked": true,
+            "difficulty": "Medium"
+          },
+          {
+            "id": "array-3sum-004",
+            "title": "3Sum",
+            "summary": "Find all unique triplets in array that sum to zero using sorted array and two-pointer approach.",
+            "isBookmarked": false,
+            "difficulty": "Medium"
+          }
+        ]
+      },
+      {
+        "id": "dynamic-programming-006",
+        "title": "Dynamic Programming",
+        "summary": "Learn optimization techniques using overlapping subproblems and optimal substructure. Master memoization and tabulation approaches.",
+        "difficulty": "Hard",
+        "progressPercentage": 20,
+        "isSaved": true,
+        "isExpanded": false,
+        "questions": [
+          {
+            "id": "dp-fibonacci-001",
+            "title": "Fibonacci Number",
+            "summary": "Calculate nth Fibonacci number using dynamic programming to avoid redundant calculations.",
+            "isBookmarked": false,
+            "difficulty": "Easy"
+          },
+          {
+            "id": "dp-climbing-002",
+            "title": "Climbing Stairs",
+            "summary": "Find number of ways to climb n stairs taking 1 or 2 steps at a time using DP approach.",
+            "isBookmarked": true,
+            "difficulty": "Easy"
+          },
+          {
+            "id": "dp-coin-change-003",
+            "title": "Coin Change",
+            "summary": "Find minimum number of coins needed to make change for given amount using bottom-up DP.",
+            "isBookmarked": true,
+            "difficulty": "Medium"
+          },
+          {
+            "id": "dp-longest-subsequence-004",
+            "title": "Longest Increasing Subsequence",
+            "summary": "Find length of longest strictly increasing subsequence using DP with binary search optimization.",
+            "isBookmarked": false,
+            "difficulty": "Medium"
+          },
+          {
+            "id": "dp-edit-distance-005",
+            "title": "Edit Distance",
+            "summary": "Find minimum operations to convert one string to another using dynamic programming matrix.",
+            "isBookmarked": true,
+            "difficulty": "Hard"
+          }
+        ]
+      }
+    ],
+    "metadata": {
+      "totalItems": 6,
+      "totalQuestions": 29,
+      "lastUpdated": "2025-07-31T14:30:00Z",
+      "version": "1.2",
+      "categories": [
+        "Data Structures",
+        "Algorithms",
+        "Problem Solving"
+      ]
+    }
+  },
+  "pagination": {
+    "currentPage": 1,
+    "totalPages": 1,
+    "itemsPerPage": 50,
+    "hasNextPage": false,
+    "hasPreviousPage": false
+  }
+}

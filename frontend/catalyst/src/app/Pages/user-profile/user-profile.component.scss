@@ -1,0 +1,38 @@
+:host {
+    color: rgb(228, 222, 222);
+    background-color: rgb(21, 6, 6);
+    height: 100%;
+    width: 100%;
+    z-index: -1;
+}
+
+/* IT HAS BEEN LONG SINCE */
+h2 {
+    padding: 0.5rem;
+    margin: 0.25rem 5em 0em 1em;
+    width: 11em;
+
+    padding: 30px;
+    font-family: 'Antonio';
+    font-style: normal;
+    font-weight: 700;
+    font-size: 70.0446px;
+    line-height: 91px;
+    align-items: center;
+    letter-spacing: 0.01em;
+
+    color: #888888d7;
+}
+
+#topHalf,
+#bottomHalf {
+    display: inline-block;
+    height: 50%;
+}
+
+img {
+    object-fit: cover;
+    transform: translate(calc(50vw - 50%), 5vh);
+    height: 45vh;
+    width: 25vw;
+}

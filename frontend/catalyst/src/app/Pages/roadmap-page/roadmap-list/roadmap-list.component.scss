@@ -1,0 +1,306 @@
+/* Reset default browser styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;
+}
+:host {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+}
+
+/* Global resets for consistent browser rendering */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;
+}
+
+/* Define global CSS variables in :root for theming and design tokens */
+:root {
+  /* Colors */
+  --color-background: #1F1F1F; /* Dark background from container */
+  --color-text-primary: #F7F6F3; /* Main text color */
+  --color-text-secondary: #BEDCE4; /* Secondary text like paragraphs */
+  --color-accent: #46675D; /* Scrollbar thumb, accents */
+  --color-scrollbar-track: rgba(247, 246, 243, 0.1); /* Scrollbar track */
+
+  /* Typography */
+  --font-family-primary: 'Antonio', sans-serif;
+  --font-weight-regular: 400;
+  --font-weight-bold: 700;
+  --font-size-heading: clamp(28px, 3vw, 48px); /* From h2 */
+  --font-size-body: clamp(13px, 1.5vw, 16px); /* From p */
+  --line-height-heading: 1.3;
+  --line-height-body: 1.6;
+  --letter-spacing: 0.01em;
+
+  /* Spacing and layout */
+  --left-panel-width: clamp(280px, 20vw, 400px); /* From left panel */
+  --panel-gap: clamp(1em, 2vw, 3em); /* Gap between panels */
+  --edge-padding: clamp(1em, 3vw, 4em); /* Padding from edges */
+
+  /* Scrollbar styles (global for consistency) */
+  --scrollbar-width: 6px;
+  --scrollbar-track-bg: var(--color-scrollbar-track);
+  --scrollbar-thumb-bg: var(--color-accent);
+  --scrollbar-thumb-hover-bg: var(--color-text-secondary);
+}
+
+/* Base global styles using variables */
+body {
+  background-color: var(--color-background);
+  color: var(--color-text-primary);
+  font-family: var(--font-family-primary);
+  font-weight: var(--font-weight-regular);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+  letter-spacing: var(--letter-spacing);
+}
+
+h2 {
+  color: var(--color-text-primary);
+  font-family: var(--font-family-primary);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-heading);
+  line-height: var(--line-height-heading);
+  letter-spacing: var(--letter-spacing);
+  margin-bottom: 1.5em; /* From left-panel h2 */
+}
+
+p {
+  color: var(--color-text-secondary);
+  font-family: var(--font-family-primary);
+  font-weight: var(--font-weight-regular);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+  letter-spacing: var(--letter-spacing);
+  margin: 0; /* From left-panel p */
+}
+
+/* Global scrollbar styles */
+::-webkit-scrollbar {
+  width: var(--scrollbar-width);
+}
+
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track-bg);
+  border-radius: 0;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb-bg);
+  border-radius: 0;
+
+  &:hover {
+    background: var(--scrollbar-thumb-hover-bg);
+  }
+}
+
+/* Responsive adjustments (media queries from your SCSS) */
+@media (max-width: 1200px) {
+  :root {
+    --left-panel-width: clamp(220px, 25vw, 350px);
+    --panel-gap: clamp(0.8em, 1.5vw, 2.5em);
+    --edge-padding: clamp(0.8em, 2vw, 3em);
+    --font-size-heading: clamp(24px, 4vw, 36px);
+    --font-size-body: clamp(12px, 2vw, 14px);
+  }
+}
+
+@media (max-width: 800px) {
+  :root {
+    --edge-padding: clamp(1em, 4vw, 2em);
+    --font-size-heading: clamp(24px, 4vw, 36px);
+    --font-size-body: clamp(12px, 2vw, 14px);
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    --edge-padding: clamp(0.8em, 4vw, 1.5em);
+    --font-size-heading: clamp(20px, 5vw, 28px);
+    --font-size-body: clamp(11px, 3vw, 13px);
+    --panel-gap: clamp(0.8em, 3vw, 1em);
+  }
+}
+
+
+// .content-area {
+//   display: flex;
+//   width: 100%;
+//   height: 100%;
+//   flex: 1;
+//   flex-direction: column;
+//   align-items: center;
+// }
+
+.container {
+  display: flex;
+  width: 100vw;
+  min-height: 100vh;
+  background-color: #1F1F1F;
+  color: #F7F6F3;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+
+  /* Dynamic CSS Custom Properties */
+  --left-panel-width: clamp(280px, 20vw, 400px); /* Dynamic width for left panel */
+  --panel-gap: clamp(1em, 2vw, 3em); /* Dynamic gap/padding between panels */
+  --edge-padding: clamp(1em, 3vw, 4em); /* Dynamic padding from screen edges */
+
+  .left-panel {
+    flex: 0 0 var(--left-panel-width);
+    padding: var(--edge-padding);
+    padding-right: calc(var(--panel-gap) / 2);
+    box-sizing: border-box;
+
+    h2 {
+      color: #F7F6F3;
+      font-family: 'Antonio', sans-serif;
+      font-style: normal;
+      font-weight: 700;
+      font-size: clamp(28px, 3vw, 48px);
+      line-height: 1.3;
+      letter-spacing: 0.01em;
+      margin-bottom: 1.5em;
+      padding: 0;
+    }
+
+    p {
+      color: #BEDCE4;
+      font-family: 'Antonio', sans-serif;
+      font-style: normal;
+      font-weight: 400;
+      font-size: clamp(13px, 1.5vw, 16px);
+      letter-spacing: 0.01em;
+      line-height: 1.6;
+      margin: 0;
+    }
+  }
+
+  .right-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    max-height: 100vh;
+    overflow-y: auto;
+    padding: var(--edge-padding);
+    padding-left: calc(var(--panel-gap) / 2);
+    box-sizing: border-box;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: rgba(247, 246, 243, 0.1);
+      border-radius: 0;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: #46675D;
+      border-radius: 0;
+
+      &:hover {
+        background: #BEDCE4;
+      }
+    }
+
+    .roadmap-grid {
+      display: flex;
+      flex-direction: column;
+      gap: var(--panel-gap);
+      width: 100%;
+    }
+  }
+}
+
+/* Responsive design adjustments */
+@media (max-width: 1200px) {
+  .container {
+    --left-panel-width: clamp(220px, 25vw, 350px);
+    --panel-gap: clamp(0.8em, 1.5vw, 2.5em);
+    --edge-padding: clamp(0.8em, 2vw, 3em);
+  }
+}
+
+
+
+@media (max-width: 800px) {
+  .container {
+    flex-direction: column;
+    width: 100%;
+    --edge-padding: clamp(1em, 4vw, 2em);
+    padding: var(--edge-padding);
+
+    .left-panel, .right-panel {
+      flex: none;
+      width: 100%;
+      padding: var(--edge-padding);
+    }
+
+    .left-panel {
+      h2 {
+        font-size: clamp(24px, 4vw, 36px);
+        margin-bottom: 1em;
+      }
+
+      p {
+        font-size: clamp(12px, 2vw, 14px);
+      }
+    }
+
+    .right-panel {
+      max-height: none;
+      overflow-y: visible;
+
+      .roadmap-grid {
+        gap: clamp(1em, 3vw, 1.5em);
+        width: 100%;
+      }
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    --edge-padding: clamp(0.8em, 4vw, 1.5em);
+    padding: var(--edge-padding);
+
+    .left-panel, .right-panel {
+      padding: var(--edge-padding);
+    }
+
+    .left-panel h2 {
+      font-size: clamp(20px, 5vw, 28px);
+    }
+
+    .left-panel p {
+      font-size: clamp(11px, 3vw, 13px);
+    }
+
+    .right-panel .roadmap-grid {
+      gap: clamp(0.8em, 3vw, 1em);
+    }
+  }
+}

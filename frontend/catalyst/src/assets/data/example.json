@@ -1,0 +1,424 @@
+{
+  "success": true,
+  "data": {
+    "roadmapItems": [
+      {
+        "id": "statistics-fundamentals-001",
+        "title": "Statistics & Probability",
+        "summary": "Build a strong foundation in statistical concepts, probability distributions, hypothesis testing, and descriptive statistics essential for ML.",
+        "difficulty": "Medium",
+        "progressPercentage": 90,
+        "isSaved": true,
+        "isExpanded": false,
+        "questions": [
+          {
+            "id": "stats-central-tendency-001",
+            "title": "Central Tendency Measures",
+            "summary": "Calculate and interpret mean, median, mode for different data distributions and understand when to use each measure.",
+            "isBookmarked": true,
+            "difficulty": "Easy"
+          },
+          {
+            "id": "stats-normal-distribution-002",
+            "title": "Normal Distribution Properties",
+            "summary": "Understand the 68-95-99.7 rule, z-scores, and how to work with standard normal distribution in ML contexts.",
+            "isBookmarked": false,
+            "difficulty": "Medium"
+          },
+          {
+            "id": "stats-hypothesis-testing-003",
+            "title": "Hypothesis Testing",
+            "summary": "Perform t-tests, chi-square tests, and ANOVA. Understand p-values, confidence intervals, and statistical significance.",
+            "isBookmarked": true,
+            "difficulty": "Medium"
+          },
+          {
+            "id": "stats-bayes-theorem-004",
+            "title": "Bayes' Theorem",
+            "summary": "Apply Bayes' theorem for conditional probability calculations and understand its role in Naive Bayes classifier.",
+            "isBookmarked": false,
+            "difficulty": "Medium"
+          },
+          {
+            "id": "stats-correlation-005",
+            "title": "Correlation vs Causation",
+            "summary": "Distinguish between correlation and causation, calculate Pearson and Spearman correlation coefficients.",
+            "isBookmarked": true,
+            "difficulty": "Easy"
+          }
+        ]
+      },
+      {
+        "id": "linear-algebra-002",
+        "title": "Linear Algebra",
+        "summary": "Master vectors, matrices, eigenvalues, and linear transformations that form the mathematical backbone of machine learning algorithms.",
+        "difficulty": "Hard",
+        "progressPercentage": 65,
+        "isSaved": true,
+        "isExpanded": false,
+        "questions": [
+          {
+            "id": "linalg-matrix-operations-001",
+            "title": "Matrix Operations",
+            "summary": "Perform matrix multiplication, addition, transpose, and inverse operations essential for ML computations.",
+            "isBookmarked": false,
+            "difficulty": "Medium"
+          },
+          {
+            "id": "linalg-eigenvalues-002",
+            "title": "Eigenvalues and Eigenvectors",
+            "summary": "Calculate eigenvalues and eigenvectors, understand their geometric interpretation and role in PCA.",
+            "isBookmarked": true,
+            "difficulty": "Hard"
+          },
+          {
+            "id": "linalg-vector-spaces-003",
+            "title": "Vector Spaces and Norms",
+            "summary": "Understand vector spaces, linear independence, basis vectors, and different types of norms (L1, L2).",
+            "isBookmarked": true,
+            "difficulty": "Medium"
+          },
+          {
+            "id": "linalg-svd-004",
+            "title": "Singular Value Decomposition",
+            "summary": "Apply SVD for dimensionality reduction, matrix factorization, and understanding recommender systems.",
+            "isBookmarked": false,
+            "difficulty": "Hard"
+          }
+        ]
+      },
+      {
+        "id": "supervised-learning-003",
+        "title": "Supervised Learning",
+        "summary": "Learn classification and regression algorithms including linear models, decision trees, ensemble methods, and SVM.",
+        "difficulty": "Medium",
+        "progressPercentage": 75,
+        "isSaved": false,
+        "isExpanded": false,
+        "questions": [
+          {
+            "id": "sup-linear-regression-001",
+            "title": "Linear Regression",
+            "summary": "Implement linear regression from scratch, understand gradient descent, and interpret coefficients and R-squared.",
+            "isBookmarked": true,
+            "difficulty": "Medium"
+          },
+          {
+            "id": "sup-logistic-regression-002",
+            "title": "Logistic Regression",
+            "summary": "Build binary and multiclass classifiers using logistic regression, understand sigmoid function and odds ratios.",
+            "isBookmarked": false,
+            "difficulty": "Medium"
+          },
+          {
+            "id": "sup-decision-trees-003",
+            "title": "Decision Trees",
+            "summary": "Construct decision trees using entropy and Gini impurity, handle overfitting with pruning techniques.",
+            "isBookmarked": true,
+            "difficulty": "Medium"
+          },
+          {
+            "id": "sup-random-forest-004",
+            "title": "Random Forest",
+            "summary": "Implement ensemble learning with random forests, understand bagging and feature importance selection.",
+            "isBookmarked": false,
+            "difficulty": "Medium"
+          },
+          {
+            "id": "sup-svm-005",
+            "title": "Support Vector Machines",
+            "summary": "Apply SVM for classification and regression, understand kernel trick and margin optimization.",
+            "isBookmarked": true,
+            "difficulty": "Hard"
+          },
+          {
+            "id": "sup-naive-bayes-006",
+            "title": "Naive Bayes Classifier",
+            "summary": "Build probabilistic classifiers using Gaussian, Multinomial, and Bernoulli Naive Bayes variants.",
+            "isBookmarked": false,
+            "difficulty": "Easy"
+          }
+        ]
+      },
+      {
+        "id": "unsupervised-learning-004",
+        "title": "Unsupervised Learning",
+        "summary": "Explore clustering algorithms, dimensionality reduction techniques, and association rule mining for pattern discovery.",
+        "difficulty": "Hard",
+        "progressPercentage": 45,
+        "isSaved": true,
+        "isExpanded": false,
+        "questions": [
+          {
+            "id": "unsup-kmeans-001",
+            "title": "K-Means Clustering",
+            "summary": "Implement k-means algorithm, choose optimal k using elbow method and silhouette analysis.",
+            "isBookmarked": true,
+            "difficulty": "Medium"
+          },
+          {
+            "id": "unsup-hierarchical-002",
+            "title": "Hierarchical Clustering",
+            "summary": "Perform agglomerative and divisive clustering, interpret dendrograms and linkage criteria.",
+            "isBookmarked": false,
+            "difficulty": "Medium"
+          },
+          {
+            "id": "unsup-pca-003",
+            "title": "Principal Component Analysis",
+            "summary": "Reduce dimensionality using PCA, understand explained variance and component interpretation.",
+            "isBookmarked": true,
+            "difficulty": "Hard"
+          },
+          {
+            "id": "unsup-tsne-004",
+            "title": "t-SNE Visualization",
+            "summary": "Apply t-SNE for high-dimensional data visualization, understand perplexity parameter tuning.",
+            "isBookmarked": false,
+            "difficulty": "Medium"
+          },
+          {
+            "id": "unsup-dbscan-005",
+            "title": "DBSCAN Clustering",
+            "summary": "Implement density-based clustering to find arbitrary shaped clusters and handle noise points.",
+            "isBookmarked": true,
+            "difficulty": "Medium"
+          },
+          {
+            "id": "unsup-apriori-006",
+            "title": "Association Rules",
+            "summary": "Mine frequent itemsets using Apriori algorithm, calculate support, confidence, and lift metrics.",
+            "isBookmarked": false,
+            "difficulty": "Medium"
+          }
+        ]
+      },
+      {
+        "id": "deep-learning-005",
+        "title": "Deep Learning",
+        "summary": "Dive into neural networks, backpropagation, CNNs, RNNs, and modern architectures like Transformers and GANs.",
+        "difficulty": "Hard",
+        "progressPercentage": 30,
+        "isSaved": true,
+        "isExpanded": false,
+        "questions": [
+          {
+            "id": "dl-perceptron-001",
+            "title": "Single Layer Perceptron",
+            "summary": "Build a basic perceptron from scratch, understand linear separability limitations and activation functions.",
+            "isBookmarked": false,
+            "difficulty": "Medium"
+          },
+          {
+            "id": "dl-multilayer-002",
+            "title": "Multi-layer Perceptron",
+            "summary": "Implement feedforward neural networks with hidden layers, understand universal approximation theorem.",
+            "isBookmarked": true,
+            "difficulty": "Hard"
+          },
+          {
+            "id": "dl-backpropagation-003",
+            "title": "Backpropagation Algorithm",
+            "summary": "Derive and implement backpropagation for gradient computation, understand chain rule application.",
+            "isBookmarked": true,
+            "difficulty": "Hard"
+          },
+          {
+            "id": "dl-cnn-004",
+            "title": "Convolutional Neural Networks",
+            "summary": "Build CNNs for image classification, understand convolution, pooling, and feature map concepts.",
+            "isBookmarked": false,
+            "difficulty": "Hard"
+          },
+          {
+            "id": "dl-rnn-005",
+            "title": "Recurrent Neural Networks",
+            "summary": "Implement RNNs and LSTMs for sequence modeling, handle vanishing gradient problem.",
+            "isBookmarked": true,
+            "difficulty": "Hard"
+          },
+          {
+            "id": "dl-attention-006",
+            "title": "Attention Mechanisms",
+            "summary": "Understand self-attention and transformer architecture, implement attention from scratch.",
+            "isBookmarked": false,
+            "difficulty": "Hard"
+          }
+        ]
+      },
+      {
+        "id": "model-evaluation-006",
+        "title": "Model Evaluation & Validation",
+        "summary": "Learn cross-validation, performance metrics, bias-variance tradeoff, and techniques to prevent overfitting.",
+        "difficulty": "Medium",
+        "progressPercentage": 80,
+        "isSaved": false,
+        "isExpanded": false,
+        "questions": [
+          {
+            "id": "eval-train-test-split-001",
+            "title": "Train-Test-Validation Split",
+            "summary": "Properly split datasets, understand data leakage prevention and stratified sampling techniques.",
+            "isBookmarked": false,
+            "difficulty": "Easy"
+          },
+          {
+            "id": "eval-cross-validation-002",
+            "title": "Cross-Validation Techniques",
+            "summary": "Implement k-fold, stratified, and time series cross-validation for robust model evaluation.",
+            "isBookmarked": true,
+            "difficulty": "Medium"
+          },
+          {
+            "id": "eval-classification-metrics-003",
+            "title": "Classification Metrics",
+            "summary": "Calculate precision, recall, F1-score, ROC-AUC, and understand confusion matrix interpretation.",
+            "isBookmarked": true,
+            "difficulty": "Medium"
+          },
+          {
+            "id": "eval-regression-metrics-004",
+            "title": "Regression Metrics",
+            "summary": "Apply MAE, MSE, RMSE, and R-squared for regression model evaluation and comparison.",
+            "isBookmarked": false,
+            "difficulty": "Easy"
+          },
+          {
+            "id": "eval-bias-variance-005",
+            "title": "Bias-Variance Tradeoff",
+            "summary": "Understand bias-variance decomposition, identify overfitting/underfitting, and apply regularization.",
+            "isBookmarked": true,
+            "difficulty": "Hard"
+          },
+          {
+            "id": "eval-hyperparameter-006",
+            "title": "Hyperparameter Tuning",
+            "summary": "Optimize models using grid search, random search, and Bayesian optimization techniques.",
+            "isBookmarked": false,
+            "difficulty": "Medium"
+          }
+        ]
+      },
+      {
+        "id": "feature-engineering-007",
+        "title": "Feature Engineering",
+        "summary": "Master data preprocessing, feature selection, creation, and transformation techniques to improve model performance.",
+        "difficulty": "Medium",
+        "progressPercentage": 55,
+        "isSaved": true,
+        "isExpanded": false,
+        "questions": [
+          {
+            "id": "feat-missing-data-001",
+            "title": "Missing Data Handling",
+            "summary": "Apply imputation techniques including mean, median, mode, KNN, and multiple imputation methods.",
+            "isBookmarked": true,
+            "difficulty": "Medium"
+          },
+          {
+            "id": "feat-categorical-encoding-002",
+            "title": "Categorical Data Encoding",
+            "summary": "Implement one-hot encoding, label encoding, target encoding, and binary encoding for categorical variables.",
+            "isBookmarked": false,
+            "difficulty": "Easy"
+          },
+          {
+            "id": "feat-scaling-003",
+            "title": "Feature Scaling",
+            "summary": "Apply standardization, normalization, and robust scaling to handle different feature scales.",
+            "isBookmarked": true,
+            "difficulty": "Easy"
+          },
+          {
+            "id": "feat-selection-004",
+            "title": "Feature Selection",
+            "summary": "Use filter, wrapper, and embedded methods for feature selection including RFE and LASSO.",
+            "isBookmarked": false,
+            "difficulty": "Medium"
+          },
+          {
+            "id": "feat-polynomial-005",
+            "title": "Polynomial Features",
+            "summary": "Create polynomial and interaction features to capture non-linear relationships in data.",
+            "isBookmarked": false,
+            "difficulty": "Medium"
+          },
+          {
+            "id": "feat-text-processing-006",
+            "title": "Text Feature Engineering",
+            "summary": "Apply TF-IDF, bag of words, n-grams, and word embeddings for text data preprocessing.",
+            "isBookmarked": true,
+            "difficulty": "Medium"
+          }
+        ]
+      },
+      {
+        "id": "time-series-008",
+        "title": "Time Series Analysis",
+        "summary": "Learn forecasting techniques, seasonality detection, ARIMA models, and deep learning approaches for temporal data.",
+        "difficulty": "Hard",
+        "progressPercentage": 25,
+        "isSaved": false,
+        "isExpanded": false,
+        "questions": [
+          {
+            "id": "ts-components-001",
+            "title": "Time Series Components",
+            "summary": "Decompose time series into trend, seasonality, and residual components using STL decomposition.",
+            "isBookmarked": false,
+            "difficulty": "Medium"
+          },
+          {
+            "id": "ts-stationarity-002",
+            "title": "Stationarity Testing",
+            "summary": "Test for stationarity using ADF test and make series stationary through differencing and transformations.",
+            "isBookmarked": true,
+            "difficulty": "Medium"
+          },
+          {
+            "id": "ts-arima-003",
+            "title": "ARIMA Modeling",
+            "summary": "Build ARIMA models for forecasting, determine optimal p, d, q parameters using ACF and PACF plots.",
+            "isBookmarked": true,
+            "difficulty": "Hard"
+          },
+          {
+            "id": "ts-seasonal-004",
+            "title": "Seasonal ARIMA",
+            "summary": "Implement SARIMA models for seasonal time series, handle multiple seasonality patterns.",
+            "isBookmarked": false,
+            "difficulty": "Hard"
+          },
+          {
+            "id": "ts-lstm-forecasting-005",
+            "title": "LSTM for Time Series",
+            "summary": "Apply LSTM neural networks for time series forecasting, handle sequence-to-sequence problems.",
+            "isBookmarked": true,
+            "difficulty": "Hard"
+          }
+        ]
+      }
+    ],
+    "metadata": {
+      "totalItems": 8,
+      "totalQuestions": 40,
+      "lastUpdated": "2025-07-31T20:30:00Z",
+      "version": "2.0",
+      "categories": [
+        "Machine Learning",
+        "Data Science",
+        "Statistical Learning",
+        "Deep Learning"
+      ],
+      "skillLevel": "Intermediate to Advanced",
+      "estimatedHours": 120
+    }
+  },
+  "pagination": {
+    "currentPage": 1,
+    "totalPages": 1,
+    "itemsPerPage": 50,
+    "hasNextPage": false,
+    "hasPreviousPage": false
+  }
+}

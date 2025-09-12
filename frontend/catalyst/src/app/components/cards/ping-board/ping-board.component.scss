@@ -1,0 +1,152 @@
+.ping-board-container{
+  display: flex;
+  flex-direction: column;
+  gap: 0px;
+  align-items: flex-end;
+  justify-content: flex-start;
+  position: relative;
+  width: 461px
+}
+.frame-1270 {
+  background: var(--color-primary-cream, #eae9e5);
+  border-radius: 10px;
+  padding: 16px 0px 16px 0px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  align-items: center;
+  justify-content: flex-start;
+  align-self: stretch;
+  flex-shrink: 0;
+  position: relative;
+}
+.ping-board {
+  color: #000000;
+  text-align: center;
+  font-family: "Erbaum-Book", sans-serif;
+  font-size: 14px;
+  letter-spacing: 0.01em;
+  font-weight: 400;
+  position: relative;
+  align-self: stretch;
+  height: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.line-60 {
+  margin-top: -0.5px;
+  border-style: solid;
+  border-color: var(--color-primary-black, #1f1f1f);
+  border-width: 0.5px 0 0 0;
+  align-self: stretch;
+  flex-shrink: 0;
+  height: 0px;
+  position: relative;
+  transform-origin: 0 0;
+  transform: rotate(0deg) scale(1, 1);
+}
+.frame-1271 {
+  background: rgba(224, 221, 212, 0.75);
+  border-radius: 10px;
+  padding: 15px 27px 15px 27px;
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  position: relative;
+}
+.frame-1267 {
+  display: flex;
+  flex-direction: row;
+  gap: 34px;
+  align-items: center;
+  justify-content: flex-start;
+  flex-shrink: 0;
+  height: 38px;
+  position: relative;
+}
+.ellipse-277 {
+  background: var(--color-secondry-red, #ff9e97);
+  border-radius: 50%;
+  flex-shrink: 0;
+  width: 12px;
+  height: 12px;
+  position: relative;
+}
+.pick-up-where-you-left-off-your-last-lesson-is-waiting {
+  text-align: left;
+  font-family: "-", sans-serif;
+  font-size: 16px;
+  line-height: 19px;
+  letter-spacing: 0.01em;
+  font-weight: 400;
+  position: relative;
+  width: 341px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+.pick-up-where-you-left-off-your-last-lesson-is-waiting-span {
+  color: var(--color-primary-green, #46675d);
+  font-family: "AlbertSans-SemiBold", sans-serif;
+  font-weight: 600;
+}
+.pick-up-where-you-left-off-your-last-lesson-is-waiting-span2 {
+  color: var(--color-primary-black, #1f1f1f);
+  font-family: "AlbertSans-Regular", sans-serif;
+}
+.frame-1272 {
+  background: rgba(224, 221, 212, 0.75);
+  border-radius: 10px;
+  padding: 15px 27px 15px 27px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+  justify-content: flex-start;
+  flex-shrink: 0;
+  position: relative;
+}
+.frame-1268 {
+  display: flex;
+  flex-direction: row;
+  gap: 34px;
+  align-items: center;
+  justify-content: flex-start;
+  flex-shrink: 0;
+  width: 387px;
+  position: relative;
+}
+.ellipse-2772 {
+  background: var(--color-secondry-yellow, #fff6bf);
+  border-radius: 50%;
+  flex-shrink: 0;
+  width: 12px;
+  height: 12px;
+  position: relative;
+}
+._3-new-questions-are-waiting-for-you-ready-for-a-challenge {
+  text-align: left;
+  font-family: "-", sans-serif;
+  font-size: 16px;
+  line-height: 19px;
+  letter-spacing: 0.01em;
+  font-weight: 400;
+  position: relative;
+  width: 322px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+._3-new-questions-are-waiting-for-you-ready-for-a-challenge-span {
+  color: var(--color-primary-green, #46675d);
+  font-family: "AlbertSans-SemiBold", sans-serif;
+  font-weight: 600;
+}
+._3-new-questions-are-waiting-for-you-ready-for-a-challenge-span2 {
+  color: var(--color-primary-black, #1f1f1f);
+  font-family: "AlbertSans-Regular", sans-serif;
+}
