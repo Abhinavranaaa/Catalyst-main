@@ -10,13 +10,26 @@ from roadmap.serializers import GenerateRoadmapRequestSerializer
 import logging
 from notifications.tasks import process_user_interests_async
 from catalyst.constants import ADDITIONAL_COMMENTS
+import jwt
+from users.models import User
+from rest_framework.exceptions import AuthenticationFailed
+
 
 logger = logging.getLogger(__name__)
 
 @api_view(['POST'])
 # @permission_classes([IsAuthenticated])
 def generate_roadmap_view(request):
-    user_id = request.headers.get('X-User-ID')
+    token = request.COOKIES.get("jwt")
+    if not token:
+        raise AuthenticationFailed("Unauthenticated")
+    try:
+        payload = jwt.decode(token, "secret", algorithms=["HS256"])
+    except jwt.ExpiredSignatureError:
+        raise AuthenticationFailed("Unauthenticated")
+
+    user_id = User.objects.filter(id=(payload["id"])).first()
+    #user_id = request.headers.get('X-User-ID')
 
     if not user_id:
         return Response(
