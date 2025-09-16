@@ -28,7 +28,7 @@ def generate_roadmap_view(request):
     except jwt.ExpiredSignatureError:
         raise AuthenticationFailed("Unauthenticated")
 
-    user_id = User.objects.filter(id=(payload["id"])).first()
+    user_id = payload["id"]
     #user_id = request.headers.get('X-User-ID')
 
     if not user_id:
