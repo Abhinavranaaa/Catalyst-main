@@ -1,8 +1,17 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.contrib.postgres.fields import ArrayField
+from django.db.models import Count, OuterRef
 
 # Create your models here.
+
+class UserProfileManager(models.Manager):
+    def get_queryset(self):
+        return UserProfileQuerySet(self.model, using=self._db)
+
+    def with_computed_fields(self):
+        return self.get_queryset().with_computed_fields()
+    
 class User(AbstractUser):
     name = models.CharField(max_length=255)
     email = models.EmailField(max_length=255, unique=True)
@@ -66,3 +75,5 @@ class UserProfile( models.Model):
     embedding_list = models.JSONField(default=list, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, blank=True, null=True)
     modified_at = models.DateTimeField(auto_now=True, blank=True, null=True)
+    # setting custom Model manager
+    objects = UserProfileManager()
