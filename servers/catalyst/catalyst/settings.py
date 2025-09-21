@@ -88,6 +88,13 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware'
 ]
 
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.BasicAuthentication',
+    ],
+}
+
 ROOT_URLCONF = 'catalyst.urls'
 
 TEMPLATES = [
@@ -168,6 +175,7 @@ AUTH_USER_MODEL = "users.User"
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:4200",
+    "https://catalyst-roadmap.vercel.app",
 ]
 
 CORS_ORIGIN_ALLOW_ALL = True
