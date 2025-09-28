@@ -4,15 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="346ef7fb-361c-4837-bbe6-36ebf939613a" name="Changes" comment="minor changes">
-      <change afterPath="$PROJECT_DIR$/.idea/material_theme_project_new.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/Catalyst.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/Catalyst.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/shelf/Uncommitted_changes_before_Update_at_23_08_25,_4_37 pm_[Changes]/shelved.patch" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/shelf/Uncommitted_changes_before_Update_at_23_08_25,_5_17 pm_[Changes]1/shelved.patch" beforeDir="false" />
+    <list default="true" id="346ef7fb-361c-4837-bbe6-36ebf939613a" name="Changes" comment="Made the dashboad view authenticated">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/catalyst/src/app/app.routes.ts" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/catalyst/src/app/app.routes.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/catalyst/src/app/components/cards/login-card/login-page.component.ts" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/catalyst/src/app/components/cards/login-card/login-page.component.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/servers/catalyst/catalyst/settings.py" beforeDir="false" afterPath="$PROJECT_DIR$/servers/catalyst/catalyst/settings.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/servers/catalyst/roadmap/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/servers/catalyst/roadmap/views.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -33,22 +28,33 @@
     &quot;assignee&quot;: &quot;Saksham20402&quot;
   }
 }</component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "git@github.com:Rexaryan1/Catalyst.git",
-    "accountId": "e2bb492b-6587-4ef0-881b-3a0a923bfd06"
+  <component name="GitHubPullRequestState">{
+  &quot;prStates&quot;: [
+    {
+      &quot;id&quot;: {
+        &quot;id&quot;: &quot;PR_kwDOPud5_86pT7w_&quot;,
+        &quot;number&quot;: 3
+      },
+      &quot;lastSeen&quot;: 1758206735629
+    }
+  ]
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;git@github.com:Abhinavranaaa/Catalyst-main.git&quot;,
+    &quot;accountId&quot;: &quot;e2bb492b-6587-4ef0-881b-3a0a923bfd06&quot;
   },
-  "recentNewPullRequestHead": {
-    "server": {
-      "useHttp": false,
-      "host": "github.com",
-      "port": null,
-      "suffix": null
+  &quot;recentNewPullRequestHead&quot;: {
+    &quot;server&quot;: {
+      &quot;useHttp&quot;: false,
+      &quot;host&quot;: &quot;github.com&quot;,
+      &quot;port&quot;: null,
+      &quot;suffix&quot;: null
     },
-    "owner": "Rexaryan1",
-    "repository": "Catalyst"
+    &quot;owner&quot;: &quot;Abhinavranaaa&quot;,
+    &quot;repository&quot;: &quot;Catalyst-main&quot;
   }
-}]]></component>
+}</component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 6
 }</component>
@@ -68,9 +74,9 @@
     "RunOnceActivity.git.unshallow": "true",
     "RunOnceActivity.pycharm.django.structure.promotion.once.per.project": "true",
     "SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "git-widget-placeholder": "#16 on homepage",
+    "git-widget-placeholder": "CORS",
     "junie.onboarding.icon.badge.shown": "true",
-    "last_opened_file_path": "/Users/sakshamlall/Documents/Projects/Catalyst/frontend/catalyst",
+    "last_opened_file_path": "/Users/sakshamlall/Documents/Projects/backend/servers/catalyst",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
@@ -78,16 +84,17 @@
     "nodejs_package_manager_path": "npm",
     "npm.start.executor": "Run",
     "to.speed.mode.migration.done": "true",
-    "ts.external.directory.path": "/Users/sakshamlall/Documents/Projects/Catalyst/frontend/catalyst/node_modules/typescript/lib",
+    "ts.external.directory.path": "/Applications/PyCharm.app/Contents/plugins/javascript-plugin/jsLanguageServicesImpl/external",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/servers/catalyst" />
       <recent name="$PROJECT_DIR$/frontend/catalyst" />
     </key>
   </component>
-  <component name="RunManager" selected="npm.start">
+  <component name="RunManager" selected="Django Server.backend">
     <configuration name="Catalyst" type="Python.DjangoServer" factoryName="Django server">
       <module name="Catalyst" />
       <option name="ENV_FILES" value="" />
@@ -123,6 +130,30 @@
       <option name="customRunCommand" value="" />
       <method v="2" />
     </configuration>
+    <configuration name="backend" type="Python.DjangoServer" factoryName="Django server">
+      <module name="backend" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="launchJavascriptDebuger" value="false" />
+      <option name="port" value="8000" />
+      <option name="host" value="" />
+      <option name="additionalOptions" value="" />
+      <option name="browserUrl" value="" />
+      <option name="runTestServer" value="false" />
+      <option name="runNoReload" value="false" />
+      <option name="useCustomRunCommand" value="false" />
+      <option name="customRunCommand" value="" />
+      <method v="2" />
+    </configuration>
     <configuration name="start" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
       <package-json value="$PROJECT_DIR$/frontend/catalyst/package.json" />
       <command value="run" />
@@ -134,6 +165,7 @@
       <method v="2" />
     </configuration>
     <list>
+      <item itemvalue="Django Server.backend" />
       <item itemvalue="Django Server.Catalyst" />
       <item itemvalue="npm.start" />
     </list>
@@ -165,6 +197,8 @@
       <workItem from="1751643577129" duration="6264000" />
       <workItem from="1752165338183" duration="369000" />
       <workItem from="1756656719184" duration="24780000" />
+      <workItem from="1758179564228" duration="13545000" />
+      <workItem from="1758441021729" duration="661000" />
     </task>
     <task id="LOCAL-00001" summary="minor changes">
       <option name="closed" value="true" />
@@ -182,7 +216,15 @@
       <option name="project" value="LOCAL" />
       <updated>1756819159197</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="Made the dashboad view authenticated">
+      <option name="closed" value="true" />
+      <created>1758206715915</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1758206715915</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -190,6 +232,7 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="minor changes" />
-    <option name="LAST_COMMIT_MESSAGE" value="minor changes" />
+    <MESSAGE value="Made the dashboad view authenticated" />
+    <option name="LAST_COMMIT_MESSAGE" value="Made the dashboad view authenticated" />
   </component>
 </project>
