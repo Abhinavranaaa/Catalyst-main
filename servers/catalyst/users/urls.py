@@ -7,6 +7,7 @@ urlpatterns = [
     path("login" , views.LoginView.as_view(), name = "login"),
     path("user", views.UserView.as_view(), name="user"),  # Basic user info
     path("logout", views.LogoutView.as_view(), name="logout"),
+    path("subscribe", views.SubscribeView.as_view(), name="subscribe"),
 
     # New profile endpoints
     path("user/profile", views.UserWithProfileView.as_view(), name="user-with-profile"),

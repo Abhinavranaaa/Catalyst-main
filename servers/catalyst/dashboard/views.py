@@ -19,7 +19,10 @@ def get_user_profileData(request):
     try:
         payload = jwt.decode(token, "secret", algorithms=["HS256"])
     except jwt.ExpiredSignatureError:
-        raise AuthenticationFailed("Unauthenticated")
+        return Response(
+            {"error": "Unauthenticated session token"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
     user_id = payload["id"]
 

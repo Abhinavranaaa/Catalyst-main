@@ -77,3 +77,11 @@ class UserProfile( models.Model):
     modified_at = models.DateTimeField(auto_now=True, blank=True, null=True)
     # setting custom Model manager
     objects = UserProfileManager()
+    
+
+class Subscriber(models.Model):
+    email = models.EmailField(unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.email

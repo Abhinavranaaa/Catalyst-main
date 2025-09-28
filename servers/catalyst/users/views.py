@@ -3,7 +3,7 @@ from rest_framework.views import APIView
 from .serializers import UserSerializer
 from rest_framework.response import Response
 from rest_framework.exceptions import AuthenticationFailed
-from .models import User, UserProfile
+from .models import User, UserProfile, Subscriber
 import jwt, datetime
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework import status
@@ -13,6 +13,9 @@ from .serializers import (
     ProfileUpdateSerializer,
     ChangePasswordSerializer
 )
+from rest_framework.decorators import api_view
+from catalyst.constants import CATALYST_EMAIL
+from notifications.observer import EmailObserver, NotificationDistributor
 
 
 
@@ -285,3 +288,28 @@ class ProfileStatsView(BaseAuthenticatedView):
 
         except UserProfile.DoesNotExist:
             return Response({'error': 'Profile not found'}, status=404)
+        
+
+
+class SubscribeView(APIView):
+    def post(self, request):
+        email = request.data.get("email")
+        if not email:
+            return Response({"message": "Email is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if Subscriber.objects.filter(email=email).exists():
+            return Response({"message": "Email already subscribed"}, status=status.HTTP_409_CONFLICT)
+
+        subscriber = Subscriber.objects.create(email=email)
+
+        email_observer = EmailObserver()
+        domain_url = 'https://django-web-109334363006.asia-south2.run.app' 
+
+        email_observer.send(
+            user=subscriber,  
+            message="Thank you for subscribing to our notifications!",
+            domain_url=domain_url
+        )
+
+        return Response({"message": "Subscribed successfully"}, status=status.HTTP_201_CREATED)
+
