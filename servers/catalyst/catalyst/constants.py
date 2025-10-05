@@ -7,7 +7,7 @@ QLOO_URL="https://hackathon.api.qloo.com/v2/insights"
 QLOO_URL_SEARCH="https://hackathon.api.qloo.com/search"
 QLOO_URL_TAGS="https://hackathon.api.qloo.com/v2/tags"
 ADDITIONAL_COMMENTS='additional_comments'
-CATALYST_EMAIL="rmitu22@gmail.com"
+CATALYST_EMAIL="admin@catalystedutech.com"
 NOTIFICATION_PROMPT_TEMPLATE="""
 You are an intelligent assistant that creates concise and engaging learning notifications 
 for users based on their interests. Use the following interests to craft a short notification message 
