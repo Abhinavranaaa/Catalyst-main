@@ -15,6 +15,7 @@ urlpatterns = [
     path("profile/update", views.ProfileUpdateView.as_view(), name="profile-update"),
     path("profile/image", views.ProfileImageUploadView.as_view(), name="profile-image"),
     path("profile/stats", views.ProfileStatsView.as_view(), name="profile-stats"),
-    path("user/change-password", views.ChangePasswordView.as_view(), name="change-password")
+    path("user/change-password", views.ChangePasswordView.as_view(), name="change-password"),
+    path("iOSUser" , views.IOSUserView.as_view(), name="iOSUser")
 ]
 
