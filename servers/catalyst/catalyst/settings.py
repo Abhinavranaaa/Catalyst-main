@@ -172,14 +172,20 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = "users.User"
-
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:4200",
-    "https://catalyst-roadmap.vercel.app",
-]
+#
+# CORS_ALLOWED_ORIGINS = [
+#     "http://localhost:4200",
+#     "https://catalyst-roadmap.vercel.app",
+# ]
 
 CORS_ORIGIN_ALLOW_ALL = True
 CORS_ALLOW_CREDENTIALS = True
+
+CSRF_COOKIE_SAMESITE = 'None'
+SESSION_COOKIE_SAMESITE = 'None'
+
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
 
 CELERY_BROKER_URL = 'rediss://:ARgjAAIjcDEzYzUxODMxN2NlMDA0ZTBmYjQ5Y2RkNWU0Mzg5MzM3MnAxMA@dashing-monkfish-6179.upstash.io:6379/0'  
 CELERY_RESULT_BACKEND = 'django-db'

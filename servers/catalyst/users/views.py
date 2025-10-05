@@ -47,7 +47,7 @@ class LoginView(APIView):
 
         response = Response()
 
-        response.set_cookie(key = "jwt" , value = token, httponly = True)
+        response.set_cookie(key = "jwt" , value = token, httponly = True , secure=True,samesite='None',path='/')
         response.data = {
             "jwt": token
         }
@@ -285,3 +285,13 @@ class ProfileStatsView(BaseAuthenticatedView):
 
         except UserProfile.DoesNotExist:
             return Response({'error': 'Profile not found'}, status=404)
+
+
+class IOSUserView(APIView):
+    def get(self,request):
+        mock_data = {
+            "name": "John Doe",
+            "profile_picture": "https://example.com/profile.jpg",
+            "bio": "iOS Developer and Swift enthusiast. Building awesome mobile apps with cutting-edge technology."
+        }
+        return Response(mock_data)
