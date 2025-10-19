@@ -17,7 +17,12 @@ class UserSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
-
+class UserLoginSerializer(serializers.ModelSerializer):
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True)
+    class Meta:
+        model = User
+        fields = ['email', 'password']
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
