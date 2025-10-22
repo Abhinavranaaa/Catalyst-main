@@ -11,7 +11,6 @@ from catalyst.constants import MAX_QUESTIONS_PER_ROADMAP, COLLECTION_NAME, LLM_M
 from qdrant_client import QdrantClient
 import torch
 from catalyst.ai_resources import _generate_query_vector
-from dotenv import load_dotenv
 from question.models import Question
 import ast
 from typing import Optional, Union
