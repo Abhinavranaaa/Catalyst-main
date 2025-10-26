@@ -58,7 +58,10 @@
 from huggingface_hub import InferenceClient
 import os
 from dotenv import load_dotenv
+import time
+import logging
 
+logger = logging.getLogger(__name__)
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 BASE_DIR = os.path.abspath(os.path.join(CURRENT_DIR, '..'))
 
@@ -86,7 +89,10 @@ def _generate_query_vector(subject: str, topic: str, additional_comments: str) -
     Generate a query vector by combining subject, topic, and extra comments.
     """
     query_text = f"Subject: {subject}. Topic: {topic}. {additional_comments}".strip()
+    start = time.time()
     response = client.feature_extraction(query_text)
+    end = time.time()
+    logger.info(f"Hugging Face latency: {end - start:.3f} seconds")
     if isinstance(response, list) and len(response) > 0:
         return response[0]
     return response

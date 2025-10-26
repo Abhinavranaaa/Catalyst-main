@@ -8,7 +8,8 @@ from langchain_cerebras import ChatCerebras
 from django.conf import settings
 import os
 from dotenv import load_dotenv
-from catalyst.constants import LLM_MODEL, MAX_TOKENS1, LLM_TEMP1
+from catalyst.constants import LLM_MODEL1, MAX_TOKENS1, LLM_TEMP1
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +20,7 @@ if os.getenv("RENDER") != "true":
 CEREBRAS_API_KEY = os.getenv("CEREBRAS_API_KEY")
 
 llm = ChatCerebras(
-        model=LLM_MODEL, 
+        model=LLM_MODEL1, 
         api_key=CEREBRAS_API_KEY,
         temperature=LLM_TEMP1,
         max_tokens=MAX_TOKENS1
@@ -39,7 +40,10 @@ def buildUserProfile(user_id: str) -> Dict[str, str]:
             - 'raw': Raw structured data sent to the LLM
     """
     try:
+        start=time.time()
         profile = UserProfile.objects.get(user_id=user_id)
+        end=time.time()
+        logger.info(f"Supabase latency for user profile: {end - start:.3f} seconds")
 
         user_data = {
             "learning_streak": profile.learning_streak or 0,
@@ -72,8 +76,10 @@ def buildUserProfile(user_id: str) -> Dict[str, str]:
         """
         prompt = PromptTemplate.from_template(template)
         chain = LLMChain(llm=llm, prompt=prompt)
-
+        start = time.time()
         summary = chain.run(user_data).strip()
+        end = time.time()
+        logger.info(f"Cerebras LLM profile latency: {end - start:.3f} seconds")
 
         return {
             "user_id": user_id,

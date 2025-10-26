@@ -13,7 +13,7 @@ from catalyst.constants import ADDITIONAL_COMMENTS
 import jwt
 from users.models import User
 from rest_framework.exceptions import AuthenticationFailed
-
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -42,11 +42,13 @@ def generate_roadmap_view(request):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     try:
+        start=time.time()
         roadmap = generate_roadmap(user_id=user_id, **serializer.validated_data)
         roadmap_formatted = reshape_roadmap_for_response(roadmap)
         roadmap_instance = save_roadmap_response(user_id, raw_roadmap_data=roadmap_formatted)
         comments = serializer.validated_data.get(ADDITIONAL_COMMENTS, '')
-#        process_user_interests_async.delay(user_id, comments)
+        end=time.time()
+        logger.info(f"Total E2E latency: {end - start:.3f} seconds")
         return Response(
             {
                 "message": "Roadmap generated successfully",
@@ -54,6 +56,7 @@ def generate_roadmap_view(request):
             },
             status=status.HTTP_201_CREATED
         )
+        
 
     except ValueError as ve:
         logger.warning(f"Business validation error: {ve}")

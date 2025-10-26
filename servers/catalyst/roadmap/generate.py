@@ -20,6 +20,7 @@ from typing import Dict
 from django.db import transaction
 from roadmap.models import Roadmap, RoadmapQuestion, Question
 import uuid
+import time 
 
 logger = logging.getLogger(__name__)
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -101,12 +102,15 @@ def _query_qdrant(query_vector: List[float], top_k: int):
     Queries Qdrant for top_k semantically similar items.
     """
     logger.info("🔍 Querying Qdrant...")
+    start=time.time()
     results = client.search(
         collection_name=COLLECTION_NAME,
         query_vector=query_vector,
         limit=top_k,
         with_payload=False,
     )
+    end=time.time()
+    logger.info(f"Qdrant latency: {end - start:.3f} seconds")
 
     if not results:
         logger.warning("⚠️ No matching results found in Qdrant.")
@@ -124,10 +128,11 @@ def _fetch_question_metadata(results) -> Dict[str, Question]:
         return {}
 
     logger.info(f"📦 Fetching metadata for IDs: {ids}")
-
+    start=time.time()
     questions = Question.objects.filter(id__in=ids)
     metadata = {str(q.id): q for q in questions}
-
+    end = time.time()
+    logger.info(f"Supabase latency question set: {end - start:.3f} seconds")
     missing_ids = set(ids) - set(metadata.keys())
     if missing_ids:
         logger.warning(f"🚫 Missing questions in DB for IDs: {missing_ids}")
@@ -250,6 +255,7 @@ def generate_roadmap_blocks(
 
     chain = LLMChain(llm=llm, prompt=prompt)
     try:
+        start=time.time()
         response = chain.run({
             "user_profile": user_profile,
             "subject": subject,
@@ -257,7 +263,8 @@ def generate_roadmap_blocks(
             "additional_comments": additional_comments or "None",
             "questions_data": json.dumps(questions_summary, indent=2)
         })
-
+        end=time.time()
+        logger.info(f"Cerebras LLM latency roadmap: {end - start:.3f} seconds")
         response_text = response if isinstance(response, str) else str(response)
         roadmap = parse_llm_response_to_json(response_text, debug_log=logger.debug)
 
