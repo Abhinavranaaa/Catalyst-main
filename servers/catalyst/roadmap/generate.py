@@ -11,7 +11,6 @@ from catalyst.constants import MAX_QUESTIONS_PER_ROADMAP, COLLECTION_NAME, LLM_M
 from qdrant_client import QdrantClient
 import torch
 from catalyst.ai_resources import _generate_query_vector
-from dotenv import load_dotenv
 from question.models import Question
 import ast
 from typing import Optional, Union
@@ -299,6 +298,8 @@ def create_fallback_roadmap(
                 block_questions.append({
                     "question_id": q['id'],
                     "question_text": q['text'],
+                    "options": q.get('options', []),
+                    "correct_index": q.get('correct_index', 0),
                     "difficulty": q['difficulty'],
                     "topic": q['topic'],
                     "learning_objective": f"Understand key concept in {q['topic']}"
@@ -384,7 +385,9 @@ def reshape_roadmap_for_response(raw_roadmap: dict) -> dict:
             question = {
                 "id": q.get("question_id", ""),
                 "title": q.get("question_text", "")[:50],
-                "summary": q.get("question_text", ""),
+                "question_text": q.get("question_text", ""),
+                "options": q.get("options", []),
+                "correct_index": q.get("correct_index", 0),
                 "isBookmarked": False,
                 "difficulty": q.get("difficulty", "Medium").capitalize()
             }

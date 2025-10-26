@@ -17,7 +17,12 @@ class UserSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
-
+class UserLoginSerializer(serializers.ModelSerializer):
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True)
+    class Meta:
+        model = User
+        fields = ['email', 'password']
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
@@ -26,7 +31,8 @@ class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserProfile
         fields = [
-            'bio', 'phone','learning_streak', 'created_at', 'modified_at'
+            'bio', 'phone','learning_streak', 'average_accuracy', 'average_time_per_question',
+            'avg_difficulty','created_at', 'modified_at'
         ]
         read_only_fields = ['created_at', 'modified_at']
 

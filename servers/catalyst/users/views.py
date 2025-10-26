@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from rest_framework.views import APIView
-from .serializers import UserSerializer
+from .serializers import UserSerializer , UserLoginSerializer
 from rest_framework.response import Response
 from rest_framework.exceptions import AuthenticationFailed
 from .models import User, UserProfile, Subscriber
@@ -29,9 +29,10 @@ class RegisterView(APIView):
 
 class LoginView(APIView):
     def post(self, request):
-        email = request.data["email"]
-        password = request.data["password"]
-
+        serializer = UserLoginSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        email = serializer.validated_data['email']
+        password = serializer.validated_data['password']
         user = User.objects.filter(email = email).first()
 
         if user is None:
@@ -50,7 +51,7 @@ class LoginView(APIView):
 
         response = Response()
 
-        response.set_cookie(key = "jwt" , value = token, httponly = True)
+        response.set_cookie(key = "jwt" , value = token, httponly = True , secure=True,samesite='None',path='/')
         response.data = {
             "jwt": token
         }
@@ -59,17 +60,7 @@ class LoginView(APIView):
 
 class UserView(APIView):
     def get(self,request):
-        token = request.COOKIES.get("jwt")
-
-        if not token:
-            raise AuthenticationFailed("Unauthenticated")
-
-        try:
-            payload = jwt.decode(token , "secret" , algorithms= ["HS256"] )
-        except jwt.ExpiredSignatureError:
-            raise AuthenticationFailed("Unauthenticated")
-
-        user = User.objects.filter(id = (payload["id"])).first()
+        user = BaseAuthenticatedView().get_user_from_token(request)
 
         serializer = UserSerializer(user)
         return Response(serializer.data)
@@ -288,6 +279,7 @@ class ProfileStatsView(BaseAuthenticatedView):
 
         except UserProfile.DoesNotExist:
             return Response({'error': 'Profile not found'}, status=404)
+
         
 
 
@@ -312,4 +304,5 @@ class SubscribeView(APIView):
         )
 
         return Response({"message": "Subscribed successfully"}, status=status.HTTP_201_CREATED)
+
 
