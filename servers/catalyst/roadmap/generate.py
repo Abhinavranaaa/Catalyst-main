@@ -7,7 +7,7 @@ import logging
 from langchain_cerebras import ChatCerebras
 import os
 from dotenv import load_dotenv
-from catalyst.constants import MAX_QUESTIONS_PER_ROADMAP, COLLECTION_NAME, LLM_MODEL1, MAX_TOKENS, LLM_TEMP2
+from catalyst.constants import MAX_QUESTIONS_PER_ROADMAP, COLLECTION_NAME, LLM_MODEL, MAX_TOKENS, LLM_TEMP2
 from qdrant_client import QdrantClient
 import torch
 from catalyst.ai_resources import _generate_query_vector
@@ -34,7 +34,7 @@ CEREBRAS_API_KEY = os.getenv("CEREBRAS_API_KEY")
 client = QdrantClient(url=VECTOR_DB_URL, api_key=VECTOR_DB_KEY)
 
 llm = ChatCerebras(
-        model_name=LLM_MODEL1, 
+        model_name=LLM_MODEL, 
         api_key=CEREBRAS_API_KEY,
         temperature=LLM_TEMP2,
         max_tokens=MAX_TOKENS

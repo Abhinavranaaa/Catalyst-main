@@ -8,7 +8,7 @@ from langchain_cerebras import ChatCerebras
 from django.conf import settings
 import os
 from dotenv import load_dotenv
-from catalyst.constants import LLM_MODEL1, MAX_TOKENS1, LLM_TEMP1
+from catalyst.constants import LLM_MODEL, MAX_TOKENS1, LLM_TEMP1
 import time
 
 logger = logging.getLogger(__name__)
@@ -20,7 +20,7 @@ if os.getenv("RENDER") != "true":
 CEREBRAS_API_KEY = os.getenv("CEREBRAS_API_KEY")
 
 llm = ChatCerebras(
-        model=LLM_MODEL1, 
+        model=LLM_MODEL, 
         api_key=CEREBRAS_API_KEY,
         temperature=LLM_TEMP1,
         max_tokens=MAX_TOKENS1
