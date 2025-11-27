@@ -38,3 +38,6 @@ steps:
 
 images:
   - 'asia-south2-docker.pkg.dev/catalyst-be/catalyst-main/catalyst-main:$COMMIT_SHA'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
