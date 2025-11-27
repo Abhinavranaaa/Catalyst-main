@@ -6,7 +6,7 @@ steps:
       - 'servers/catalyst/Dockerfile'
       - '-t'
       - 'asia-south2-docker.pkg.dev/catalyst-be/catalyst-main/catalyst-main:$COMMIT_SHA'
-      - '.'
+      - 'servers/catalyst'   
 
   - name: 'gcr.io/cloud-builders/docker'
     args:
