@@ -6,7 +6,7 @@ steps:
       - 'servers/catalyst/Dockerfile'
       - '-t'
       - 'asia-south2-docker.pkg.dev/catalyst-be/catalyst-main/catalyst-main:$COMMIT_SHA'
-      - 'servers/catalyst'   
+      - 'servers/catalyst'
 
   - name: 'gcr.io/cloud-builders/docker'
     args:
@@ -27,14 +27,8 @@ steps:
       - --timeout=600
       - --max-instances=5
       - --allow-unauthenticated
-      - --set-secrets=HF_TOKEN=HF_TOKEN:latest
-      - --set-secrets=VECTOR_DB_URL=VECTOR_DB_URL:latest
-      - --set-secrets=VECTOR_DB_KEY=VECTOR_DB_KEY:latest
-      - --set-secrets=QLOO_API_KEY=QLOO_API_KEY:latest
-      - --set-secrets=QLOO_BASE_URL=QLOO_BASE_URL:latest
-      - --set-secrets=VAPID_PUBLIC_KEY=VAPID_PUBLIC_KEY:latest
-      - --set-secrets=VAPID_PRIVATE_KEY=VAPID_PRIVATE_KEY:latest
-      - --set-secrets=CEREBRAS_API_KEY=CEREBRAS_API_KEY:latest
+      - --no-set-env-vars
+      - --no-set-secrets
 
 images:
   - 'asia-south2-docker.pkg.dev/catalyst-be/catalyst-main/catalyst-main:$COMMIT_SHA'
