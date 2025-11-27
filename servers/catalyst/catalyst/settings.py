@@ -41,7 +41,8 @@ ALLOWED_HOSTS = [
     '127.0.0.1',
     'catalyst-38ab.onrender.com',
     'django-web-109334363006.asia-south2.run.app',
-    'catalyst-main-109334363006.asia-south2.run.app'
+    'catalyst-main-109334363006.asia-south2.run.app',
+    'catalyst-main-1036749949194.asia-south2.run.app'
 ]
 
 STATIC_URL = '/static/'
