@@ -1,25 +1,36 @@
 steps:
+
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'build'
       - '-t'
-      - 'us-central1-docker.pkg.dev/gen-lang-client-0062785460/my-repo/django-web:$COMMIT_SHA'
+      - 'asia-south2-docker.pkg.dev/catalyst-be/catalyst-main/embedding-api:$COMMIT_SHA'
       - '.'
+
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'asia-south2-docker.pkg.dev/catalyst-be/catalyst-main/embedding-api:$COMMIT_SHA'
+
 
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
     args:
       - run
       - deploy
-      - catalyst
-      - --image=us-central1-docker.pkg.dev/gen-lang-client-0062785460/my-repo/django-web:$COMMIT_SHA
-      - --region=us-central1
+      - embedding-api
+      - --image=asia-south2-docker.pkg.dev/catalyst-be/catalyst-main/embedding-api:$COMMIT_SHA
+      - --region=asia-south2
       - --platform=managed
-      - --memory=2Gi
+      - --memory=4Gi
       - --cpu=2
-      - --timeout=600
+      - --timeout=900
       - --max-instances=5
+      - --min-instances=0
       - --allow-unauthenticated
+      - --set-env-vars=EMBED_MODEL=sentence-transformers/all-MiniLM-L6-v2
+      - --set-env-vars=TORCH_NUM_THREADS=4
       - --set-secrets=HF_TOKEN=HF_TOKEN:latest
       - --set-secrets=VECTOR_DB_URL=VECTOR_DB_URL:latest
       - --set-secrets=VECTOR_DB_KEY=VECTOR_DB_KEY:latest
@@ -30,6 +41,4 @@ steps:
       - --set-secrets=CEREBRAS_API_KEY=CEREBRAS_API_KEY:latest
 
 images:
-  - 'us-central1-docker.pkg.dev/gen-lang-client-0062785460/my-repo/django-web:$COMMIT_SHA'
-
-
+  - 'asia-south2-docker.pkg.dev/catalyst-be/catalyst-main/embedding-api:$COMMIT_SHA'
