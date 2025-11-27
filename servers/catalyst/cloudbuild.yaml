@@ -27,8 +27,6 @@ steps:
       - --timeout=600
       - --max-instances=5
       - --allow-unauthenticated
-      - --no-set-env-vars
-      - --no-set-secrets
 
 images:
   - 'asia-south2-docker.pkg.dev/catalyst-be/catalyst-main/catalyst-main:$COMMIT_SHA'
