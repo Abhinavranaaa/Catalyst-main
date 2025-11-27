@@ -1,36 +1,32 @@
 steps:
-
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'build'
+      - '-f'
+      - 'servers/catalyst/Dockerfile'
       - '-t'
-      - 'asia-south2-docker.pkg.dev/catalyst-be/catalyst-main/embedding-api:$COMMIT_SHA'
+      - 'asia-south2-docker.pkg.dev/catalyst-be/catalyst-main/catalyst-main:$COMMIT_SHA'
       - '.'
-
 
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'push'
-      - 'asia-south2-docker.pkg.dev/catalyst-be/catalyst-main/embedding-api:$COMMIT_SHA'
-
+      - 'asia-south2-docker.pkg.dev/catalyst-be/catalyst-main/catalyst-main:$COMMIT_SHA'
 
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
     args:
       - run
       - deploy
-      - embedding-api
-      - --image=asia-south2-docker.pkg.dev/catalyst-be/catalyst-main/embedding-api:$COMMIT_SHA
+      - catalyst-main
+      - --image=asia-south2-docker.pkg.dev/catalyst-be/catalyst-main/catalyst-main:$COMMIT_SHA
       - --region=asia-south2
       - --platform=managed
-      - --memory=4Gi
+      - --memory=2Gi
       - --cpu=2
-      - --timeout=900
+      - --timeout=600
       - --max-instances=5
-      - --min-instances=0
       - --allow-unauthenticated
-      - --set-env-vars=EMBED_MODEL=sentence-transformers/all-MiniLM-L6-v2
-      - --set-env-vars=TORCH_NUM_THREADS=4
       - --set-secrets=HF_TOKEN=HF_TOKEN:latest
       - --set-secrets=VECTOR_DB_URL=VECTOR_DB_URL:latest
       - --set-secrets=VECTOR_DB_KEY=VECTOR_DB_KEY:latest
@@ -41,4 +37,4 @@ steps:
       - --set-secrets=CEREBRAS_API_KEY=CEREBRAS_API_KEY:latest
 
 images:
-  - 'asia-south2-docker.pkg.dev/catalyst-be/catalyst-main/embedding-api:$COMMIT_SHA'
+  - 'asia-south2-docker.pkg.dev/catalyst-be/catalyst-main/catalyst-main:$COMMIT_SHA'
