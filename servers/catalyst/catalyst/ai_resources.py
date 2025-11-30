@@ -17,6 +17,8 @@ HF_TOKEN = os.getenv('HF_TOKEN')
 if not HF_TOKEN:
     raise RuntimeError("HF_TOKEN is not set in environment variables.")
 
+# can use infernce client for testing with hugging face
+
 embedding_service = EmbeddingService()
 
 def generate_embedding_from_text(text: str) -> list[float]:

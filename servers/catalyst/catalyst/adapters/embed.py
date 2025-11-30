@@ -51,7 +51,7 @@ class EmbeddingServiceAdapter(AdapterProvider):
                 self.url,
                 json=payload,
                 headers=headers,
-                timeout=15,  
+                timeout=30,  
             )
             response.raise_for_status()
         except requests.exceptions.Timeout:
