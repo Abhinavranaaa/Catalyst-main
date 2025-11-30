@@ -5,7 +5,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
-from roadmap.generate import generate_roadmap,reshape_roadmap_for_response,save_roadmap_response
+from roadmap.service.generate import generate_roadmap,reshape_roadmap_for_response,save_roadmap_response
 from roadmap.serializers import GenerateRoadmapRequestSerializer
 import logging
 from notifications.tasks import process_user_interests_async

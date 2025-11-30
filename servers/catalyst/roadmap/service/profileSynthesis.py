@@ -14,7 +14,7 @@ import time
 logger = logging.getLogger(__name__)
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-BASE_DIR = os.path.abspath(os.path.join(CURRENT_DIR, '..'))
+BASE_DIR = os.path.abspath(os.path.join(CURRENT_DIR, '..','..'))
 if os.getenv("RENDER") != "true":
     load_dotenv(os.path.join(BASE_DIR, '.env'), override=True)
 CEREBRAS_API_KEY = os.getenv("CEREBRAS_API_KEY")

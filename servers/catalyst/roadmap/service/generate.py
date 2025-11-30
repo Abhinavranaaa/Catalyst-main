@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 from catalyst.constants import MAX_QUESTIONS_PER_ROADMAP, COLLECTION_NAME, LLM_MODEL, MAX_TOKENS, LLM_TEMP2
 from qdrant_client import QdrantClient
 import torch
-from catalyst.ai_resources import _generate_query_vector
+from catalyst.ai_resources import generate_embedding_from_text
 from question.models import Question
 import ast
 from typing import Optional, Union
@@ -23,7 +23,7 @@ import time
 
 logger = logging.getLogger(__name__)
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-BASE_DIR = os.path.abspath(os.path.join(CURRENT_DIR, '..'))
+BASE_DIR = os.path.abspath(os.path.join(CURRENT_DIR, '..','..'))
 
 if os.getenv("RENDER") != "true":
     load_dotenv(os.path.join(BASE_DIR, '.env'), override=True)
@@ -86,7 +86,8 @@ def fetch_relevant_questions(
     using semantic similarity, then fetching rich metadata from the relational DB.
     """
     try:
-        query_vector = _generate_query_vector(subject, topic, additional_comments)
+        query_text = f"Subject: {subject}. Topic: {topic}. {additional_comments}".strip()
+        query_vector = generate_embedding_from_text(query_text)
         qdrant_hits = _query_qdrant(query_vector, top_k)
         question_data = _fetch_question_metadata(qdrant_hits)
         return _format_results(qdrant_hits, question_data)
