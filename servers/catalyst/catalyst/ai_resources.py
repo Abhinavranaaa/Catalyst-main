@@ -22,16 +22,15 @@ if not HF_TOKEN:
 embedding_service = EmbeddingService()
 
 def generate_embedding_from_text(text: str) -> list[float]:
-    """
-    Generate embeddings for a given text using Hugging Face Inference API.
-    """
     start = time.time()
     response = embedding_service.embed_text(text)
     end = time.time()
     logger.info(f"Hugging Face latency: {end - start:.3f} seconds")
+    if isinstance(response, dict) and "embeddings" in response:
+        return response["embeddings"][0]
     if isinstance(response, list) and len(response) > 0:
-        return response[0]  # HF Inference sometimes wraps vectors in a list
-    return response
+        return response[0]
+    raise ValueError(f"Unexpected embedding response format: {response}")
 
 
 
