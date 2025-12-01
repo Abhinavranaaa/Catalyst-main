@@ -25,8 +25,9 @@ def generate_embedding_from_text(text: str) -> list[float]:
     start = time.time()
     response = embedding_service.embed_text(text)
     end = time.time()
-    logger.info(f"Hugging Face latency: {end - start:.3f} seconds")
+    logger.info(f"s2s latency: {end - start:.3f} seconds")
     if isinstance(response, dict) and "embeddings" in response:
+        logger.info(f"response: {response['embeddings'][0]}")
         return response["embeddings"][0]
     if isinstance(response, list) and len(response) > 0:
         return response[0]

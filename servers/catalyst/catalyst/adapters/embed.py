@@ -60,4 +60,4 @@ class EmbeddingServiceAdapter(AdapterProvider):
             raise RuntimeError(f"Embedding service error: {exc}")
 
         data = response.json()
-        return data["embeddings"][0]
+        return data
