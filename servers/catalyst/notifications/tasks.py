@@ -12,13 +12,15 @@ from langchain import LLMChain
 from langchain_cerebras import ChatCerebras
 from langchain.prompts import PromptTemplate
 from django.conf import settings
-from catalyst.constants import NOTIFICATION_PROMPT_TEMPLATE, LLM_TEMP, MAX_TOKENS1, LLM_MODEL
+from catalyst.constants import NOTIFICATION_PROMPT_TEMPLATE, LLM_TEMP, MAX_TOKENS1, LLM_MODEL, PENDING, SENT, FAILED, DELIVERY_STATUS
 import re
 from collections import Counter
 import nltk
 from nltk.corpus import stopwords
 import random
 from nltk import pos_tag, word_tokenize, bigrams
+from django.db import transaction
+
 
 logger = logging.getLogger(__name__)
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -145,4 +147,102 @@ def send_daily_notifications(self):
         except Exception as e:
             logger.error(f"Failed to send notification to user {user.id}: {e}")
             raise self.retry(exc=exc)
+        
+
+def process_daily_notifications_batch(user_ids: list[int]):
+    logger.info(f"Processing batch size={len(user_ids)}")
+    distributor = NotificationDistributor()
+    distributor.register(EmailObserver())
+    distributor.register(PushObserver())
+
+    llm = ChatCerebras(
+        model=LLM_MODEL,
+        api_key=CEREBRAS_API_KEY,
+        temperature=LLM_TEMP,
+        max_tokens=MAX_TOKENS1
+    )
+
+    prompt = PromptTemplate.from_template(NOTIFICATION_PROMPT_TEMPLATE)
+    chain = LLMChain(llm=llm, prompt=prompt)
+
+    profiles = (
+        UserProfile.objects
+        .select_related("user")
+        .filter(user_id__in=user_ids)
+    )
+
+    profiles_by_user_id = {p.user_id: p for p in profiles}
+
+    last_notifications = (
+        Notification.objects
+        .filter(user_id__in=user_ids)
+        .order_by("user_id", "-created_at")
+        .distinct("user_id")
+    )
+
+    last_keyword_map = {
+        n.user_id: n.keyword_used.strip().lower()
+        for n in last_notifications
+        if n.keyword_used
+    }
+
+    notifications_to_create = []
+    send_queue = []
+
+    for user_id in user_ids:
+        profile = profiles_by_user_id.get(user_id)
+        if not profile:
+            logger.warning(f"Missing profile for user {user_id}")
+            continue
+
+        user = profile.user
+        if not user.email:
+            continue
+
+        interests = profile.taste_keywords_list or []
+        last_keyword = last_keyword_map.get(user_id)
+
+        if not interests:
+            keyword_used = ""
+            message = "Keep up your learning journey! Explore new topics and stay curious."
+        else:
+            available = [kw for kw in interests if kw.lower() != last_keyword]
+            keyword_used = random.choice(available or interests)
+
+            try:
+                output = chain.run(interests=keyword_used)
+                message = output.strip()
+                if len(message) < 10:
+                    raise ValueError
+            except Exception:
+                message = f"Based on your interest ({keyword_used}), we’ve curated new learning content for you!"
+
+        notifications_to_create.append(
+            Notification(
+                user=user,
+                message=message,
+                channel="email",
+                keyword_used=keyword_used or "",
+                delivery_status=PENDING
+            )
+        )
+
+        send_queue.append((user, message, keyword_used))
+
+    
+    with transaction.atomic():
+        Notification.objects.bulk_create(notifications_to_create)
+
+    for notification, (user, message, keyword_used) in zip(notifications_to_create, send_queue):
+        try:
+            distributor.notify(user, message, keyword_used=keyword_used)
+            notification.delivery_status = SENT
+        except Exception as e:
+            logger.error(f"Notification send failed for user {user.id}: {e}")
+            notification.delivery_status = FAILED
+
+    Notification.objects.bulk_update(
+        notifications_to_create,
+        [DELIVERY_STATUS]
+    )
 

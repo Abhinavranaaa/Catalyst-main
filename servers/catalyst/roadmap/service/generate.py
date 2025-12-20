@@ -190,7 +190,8 @@ def generate_roadmap_blocks(
             "difficulty": q.get("difficulty", "medium"),
             "topic": q.get("topic", "general"),
             "options": q.get("options", []),
-            "similarity_score": round(q.get("similarity_score", 0.0), 3)
+            "similarity_score": round(q.get("similarity_score", 0.0), 3),
+            "correct_index": q.get("correct_index",-1)
         }
         for q in questions[:MAX_QUESTIONS_PER_ROADMAP]
     ]
@@ -216,7 +217,6 @@ def generate_roadmap_blocks(
         - Use the user profile to prioritize weak topics and adjust difficulty sequencing.
         - Drop redundant or irrelevant questions.
         - Organize questions into logical learning blocks of dynamic count and size.
-        - You MAY add 1 synthetic question per block if needed for concept bridging, must be clearly labeled.
         - Each block must have a title, description, estimated time.
         - Each question must include id, text, difficulty, topic, 4 options, and a learning objective.
         - Start from easier concepts, progress to advanced.
@@ -234,6 +234,7 @@ def generate_roadmap_blocks(
             "block_title": "Block title",
             "block_description": "What this block covers and how it helps",
             "estimated_time": "30 minutes",
+            ""difficulty": "difficulty of the block that is the avarage difficulty of the questions in that block/item",
             "questions": [
                 {{
                 "question_id": "q123" or "synthetic_1",
@@ -241,6 +242,7 @@ def generate_roadmap_blocks(
                 "difficulty": "easy/medium/hard",
                 "topic": "micro-topic",
                 "options": ["option1", "option2", "option3", "option4"],
+                "correct_index": "correct option for the question",
                 "learning_objective": "Learner gains X"
                 }}
             ]

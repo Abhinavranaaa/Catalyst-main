@@ -38,3 +38,15 @@ FALLBACK_TAGS=[
     "urn:tag:genre:qloo:technology",
     "urn:tag:audience:qloo:university"
 ]
+
+BATCH_SIZE = 5
+SA_EMAIL = "TASKS_SA_EMAIL"
+PROCESS_URL = "TASK_PROCESS_URL"
+
+ASIA_SOUTH1 = "ASIA_SOUTH1"
+NOTIFICATION_QUEUE = "NOTIF_QUEUE"
+PROJECT_ID = "PID"
+PENDING="pending"
+SENT="sent"
+FAILED="failed"
+DELIVERY_STATUS="delivery_status"

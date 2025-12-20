@@ -4,6 +4,15 @@ from users.models import User
 class Notification(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notifications")
     message = models.TextField()
+    delivery_status = models.CharField(
+        max_length=20,
+        default="pending",
+        choices=[
+            ("pending", "Pending"),
+            ("sent", "Sent"),
+            ("failed", "Failed"),
+        ]
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     read = models.BooleanField(default=False)
     channel = models.CharField(max_length=16, choices=[('push', 'Push'), ('email', 'Email')])
