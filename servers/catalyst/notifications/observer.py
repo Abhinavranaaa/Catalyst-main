@@ -9,6 +9,10 @@ from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
+from smtplib import SMTPException
+import logging 
+
+logger = logging.getLogger(__name__)
 
 class NotificationObserver:
     def send(self, user, message, **kwargs):
@@ -36,7 +40,16 @@ class EmailObserver(NotificationObserver):
             to=[user.email],
         )
         email.attach_alternative(html_content, "text/html")
-        email.send()
+        try:
+            sent = email.send()
+            if sent != 1:
+                raise Exception("Email backend did not accept message")
+        except SMTPException as e:
+            logger.error(f"SMTP failure for {user.email}: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"Email send failed for {user.email}: {e}")
+            raise
 
 
 class PushObserver(NotificationObserver):

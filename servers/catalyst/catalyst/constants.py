@@ -11,19 +11,24 @@ EMBED_BASE = "EMBED_SERVICE_BASE"
 ADDITIONAL_COMMENTS='additional_comments'
 CATALYST_EMAIL="admin@catalystedutech.com"
 NOTIFICATION_PROMPT_TEMPLATE="""
-You are an intelligent assistant that creates concise and engaging learning notifications 
-for users based on their interests. Use the following interests to craft a short notification message 
-that motivates the user to continue learning:
+You are an assistant that generates short notification messages ONLY.
 
-User Interests: {interests}
+Rules:
+- Output ONLY the final notification text
+- DO NOT explain your reasoning
+- DO NOT include thoughts, analysis, or meta commentary
+- Maximum 2 sentences
+- Keep it concise and engaging
 
-Generate a relevant, motivating notification (max 2 sentences):
+User Interest: {interests}
+
+Notification:
 """
-LLM_TEMP=0.7
+LLM_TEMP=0.6
 LLM_TEMP1=0.4
 LLM_TEMP2=0.4
 MAX_TOKENS=4096
-MAX_TOKENS1=2048
+MAX_TOKENS1=60
 MAX_RES_QLOO=5
 MAX_QLOO_ITEMS=10
 MOVIE_ENTITY="urn:entity:movie"
