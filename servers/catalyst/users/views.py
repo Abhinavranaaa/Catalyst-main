@@ -310,7 +310,7 @@ class SubscribeView(APIView):
         return Response({"message": "Subscribed successfully"}, status=status.HTTP_201_CREATED)
     
 @api_view(['POST'])
-def triggerNotifications(request):
+def triggerOnboarding(request):
     token = request.COOKIES.get("jwt")
     if not token:
         raise AuthenticationFailed("Unauthenticated")
