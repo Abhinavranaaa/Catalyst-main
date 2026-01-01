@@ -327,8 +327,9 @@ def triggerOnboarding(request):
             {"error": "Missing User ID in headers"},
             status=status.HTTP_400_BAD_REQUEST
         )
-    input = SerializeUserInfo(request.data)
-    response = saveAndProcessUser(user_id,**input.validated_data)
+    serializer = SerializeUserInfo(data=request.data)
+    serializer.is_valid(raise_exception=False)
+    response = saveAndProcessUser(user_id,**serializer.validated_data)
     logger.info("save user info response: %s", response)
     return Response({"message": "Onboarded successfully"}, status=status.HTTP_201_CREATED)
 
