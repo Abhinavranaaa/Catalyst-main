@@ -5,7 +5,10 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.contrib.auth import get_user_model
 from users.models import UserProfile 
+from typing import Optional, List
+import logging
 
+logger=logging.getLogger(__name__)
 User = get_user_model()
 
 with open(settings.BASE_DIR / 'mock_data' / 'user_profiles.json') as f:
@@ -25,3 +28,38 @@ def create_user_profile(sender, instance, created, **kwargs):
             average_time_per_question=random_profile.get('average_time_per_question'),
             taste_keywords_list=random_profile.get('taste_keywords_list')
         )
+
+def saveAndProcessUser(
+    user_id: str,
+    primary_goal: str,
+    daily_target_time: Optional[int] = None,
+    interests: Optional[List[str]] = None
+):
+    """
+    Saves onboarding data and updates taste keywords safely.
+    """
+    try:
+        profile = UserProfile.objects.get(user_id=user_id)
+        profile.primary_goal_onboarding = primary_goal
+        if daily_target_time is not None:
+            profile.daily_target_time = daily_target_time
+
+        if interests:
+            existing_keywords = profile.taste_keywords_list or []
+            merged_keywords = list(dict.fromkeys(existing_keywords + interests))
+            profile.taste_keywords_list = merged_keywords
+
+        profile.save()
+        return profile
+
+    except UserProfile.DoesNotExist:
+        logger.error(f"UserProfile not found for user_id={user_id}")
+        return None
+
+    except Exception as e:
+        logger.exception(
+            f"Failed to save onboarding data for user_id={user_id}: {e}"
+        )
+        return None
+
+    

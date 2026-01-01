@@ -95,3 +95,9 @@ class ChangePasswordSerializer(serializers.Serializer):
         if value.isdigit():
             raise serializers.ValidationError("Password cannot be entirely numeric.")
         return value
+    
+class SerializeUserInfo(serializers.Serializer):
+    primary_goal = serializers.CharField(max_length=255)
+    daily_target_time = serializers.IntegerField(required=False, allow_null=True)
+    interests = serializers.JSONField(required=False, allow_null=True)
+    

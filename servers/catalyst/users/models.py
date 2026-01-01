@@ -72,10 +72,22 @@ class UserProfile( models.Model):
     avg_difficulty = models.FloatField(blank=True, null=True)
     average_time_per_question = models.FloatField(blank=True, null=True)
     taste_keywords_list = models.JSONField(default=list, blank=True)
+    primary_goal_onboarding = models.CharField(
+        max_length=26,
+        default="other",
+        choices=[
+            ("school exams", "School Exams"),
+            ("competitive exams", "Competitive Exams"),
+            ("university semester exams", "University Semester Exams"),
+            ("professional certification", "Professional Certification"),
+            ("general knowledge", "General Knowledge"),
+
+        ]
+    )
+    daily_target_time = models.IntegerField(blank=True, null=True)
     embedding_list = models.JSONField(default=list, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, blank=True, null=True)
     modified_at = models.DateTimeField(auto_now=True, blank=True, null=True)
-    # setting custom Model manager
     objects = UserProfileManager()
     
 

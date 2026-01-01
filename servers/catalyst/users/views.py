@@ -16,8 +16,12 @@ from .serializers import (
 from rest_framework.decorators import api_view
 from catalyst.constants import CATALYST_EMAIL
 from notifications.observer import EmailObserver, NotificationDistributor
+from users.serializers import SerializeUserInfo
+import logging
+from users.signals.createProfile import saveAndProcessUser
 
 
+logger = logging.getLogger(__name__)
 
 # Create your views here.
 class RegisterView(APIView):
@@ -304,5 +308,28 @@ class SubscribeView(APIView):
         )
 
         return Response({"message": "Subscribed successfully"}, status=status.HTTP_201_CREATED)
+    
+@api_view(['POST'])
+def triggerNotifications(request):
+    token = request.COOKIES.get("jwt")
+    if not token:
+        raise AuthenticationFailed("Unauthenticated")
+    try:
+        payload = jwt.decode(token, "secret", algorithms=["HS256"])
+    except jwt.ExpiredSignatureError:
+        raise AuthenticationFailed("Unauthenticated")
+
+    user_id = payload["id"]
+    #user_id = request.headers.get('X-User-ID')
+
+    if not user_id:
+        return Response(
+            {"error": "Missing User ID in headers"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    input = SerializeUserInfo(request.data)
+    response = saveAndProcessUser(user_id,**input.validated_data)
+    logger.info("save user info response: %s", response)
+    return Response({"message": "Onboarded successfully"}, status=status.HTTP_201_CREATED)
 
 
