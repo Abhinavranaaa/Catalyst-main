@@ -8,7 +8,8 @@ from langchain_cerebras import ChatCerebras
 from django.conf import settings
 import os
 from dotenv import load_dotenv
-from catalyst.constants import LLM_MODEL, MAX_TOKENS1, LLM_TEMP1
+from catalyst.constants import LLM_MODEL_PROFILE, MAX_TOKENS1, LLM_TEMP1, PROFILE_TEMPLATE_2
+from catalyst.utils import remove_think_blocks 
 import time
 
 logger = logging.getLogger(__name__)
@@ -20,7 +21,7 @@ if os.getenv("RENDER") != "true":
 CEREBRAS_API_KEY = os.getenv("CEREBRAS_API_KEY")
 
 llm = ChatCerebras(
-        model=LLM_MODEL, 
+        model=LLM_MODEL_PROFILE, 
         api_key=CEREBRAS_API_KEY,
         temperature=LLM_TEMP1,
         max_tokens=MAX_TOKENS1
@@ -55,29 +56,12 @@ def buildUserProfile(user_id: str) -> Dict[str, str]:
             "taste_keywords_list": profile.taste_keywords_list or []
         }
 
-        template = """
-        You are an expert AI learning coach. Analyze the following weekly metrics and generate a clear, 3-part summary:
-
-        === USER PERFORMANCE DATA ===
-        - Learning Streak: {learning_streak} days
-        - Strong Topics: {strong_topics}
-        - Weak Topics: {weak_topics}
-        - Average Accuracy: {average_accuracy}%
-        - Average Difficulty Attempted: {avg_difficulty}
-        - Average Time per Question: {average_time_per_question} seconds
-        - Taste Keywords List: {taste_keywords_list}
-
-        === TASK ===
-        1. Write a short paragraph summarizing the user's current learning behavior and style (e.g., cautious, fast-paced, high-achiever, etc.).
-        2. Suggest how curriculum blocks should be adapted to this learner (e.g., start simple, mix topics, reinforce weaknesses first, etc.).
-        3. Give 2-3 roadmap-specific tips that could help improve performance or motivation.
-
-        Keep it concise, grounded in the data, and easy for an LLM or a human coach to reuse in a personalized roadmap.
-        """
+        template = PROFILE_TEMPLATE_2
         prompt = PromptTemplate.from_template(template)
         chain = LLMChain(llm=llm, prompt=prompt)
         start = time.time()
-        summary = chain.run(user_data).strip()
+        summary = remove_think_blocks(chain.run(user_data))
+        # logger.info("LLM summary generated: %s", summary)
         end = time.time()
         logger.info(f"Cerebras LLM profile latency: {end - start:.3f} seconds")
 

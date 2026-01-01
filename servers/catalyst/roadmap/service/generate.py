@@ -18,6 +18,7 @@ import re
 from typing import Dict
 from django.db import transaction
 from roadmap.models import Roadmap, RoadmapQuestion, Question
+from catalyst.utils import remove_think_blocks 
 import uuid
 import time 
 
@@ -266,12 +267,13 @@ def generate_roadmap_blocks(
             "questions_data": json.dumps(questions_summary, indent=2)
         })
         end=time.time()
+        # logger.info("LLM summary generated for roadmap: %s", response)
         logger.info(f"Cerebras LLM latency roadmap: {end - start:.3f} seconds")
         response_text = response if isinstance(response, str) else str(response)
         roadmap = parse_llm_response_to_json(response_text, debug_log=logger.debug)
 
         if not roadmap:
-            logger.error("⚠️ Roadmap output could not be parsed even after fallback.")
+            logger.error(" Roadmap output could not be parsed even after fallback.")
             return create_fallback_roadmap(questions)
         
         return roadmap

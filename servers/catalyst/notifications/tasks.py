@@ -12,7 +12,7 @@ from langchain import LLMChain
 from langchain_cerebras import ChatCerebras
 from langchain.prompts import PromptTemplate
 from django.conf import settings
-from catalyst.constants import NOTIFICATION_PROMPT_TEMPLATE, LLM_TEMP, MAX_TOKENS1, LLM_MODEL, PENDING, SENT, FAILED, DELIVERY_STATUS
+from catalyst.constants import NOTIFICATION_PROMPT_TEMPLATE, LLM_TEMP, MAX_TOKENS1, LLM_MODEL, PENDING, SENT, FAILED, DELIVERY_STATUS, LLM_MODEL_NOTIFICATIONS
 import re
 from collections import Counter
 import nltk
@@ -20,6 +20,7 @@ from nltk.corpus import stopwords
 import random
 from nltk import pos_tag, word_tokenize, bigrams
 from django.db import transaction
+from catalyst.utils import remove_think_blocks
 
 
 logger = logging.getLogger(__name__)
@@ -156,7 +157,7 @@ def process_daily_notifications_batch(user_ids: list[int]):
     distributor.register(PushObserver())
 
     llm = ChatCerebras(
-        model=LLM_MODEL,
+        model=LLM_MODEL_NOTIFICATIONS,
         api_key=CEREBRAS_API_KEY,
         temperature=LLM_TEMP,
         max_tokens=MAX_TOKENS1
@@ -211,7 +212,7 @@ def process_daily_notifications_batch(user_ids: list[int]):
 
             try:
                 output = chain.run(interests=keyword_used)
-                message = output.strip()
+                message = remove_think_blocks(output)
                 if len(message) < 10:
                     raise ValueError
             except Exception:
