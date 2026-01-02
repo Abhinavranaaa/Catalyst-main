@@ -25,6 +25,7 @@ steps:
       - --memory=2Gi
       - --cpu=2
       - --timeout=600
+      - --min-instances=0 
       - --max-instances=5
       - --allow-unauthenticated
 
