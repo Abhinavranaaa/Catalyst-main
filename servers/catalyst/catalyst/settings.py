@@ -185,6 +185,17 @@ SESSION_COOKIE_SAMESITE = 'None'
 CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SECURE = True
 
+UPSTASH_REDIS_REST_TOKEN=os.getenv("UPSTASH_REDIS_REST_TOKEN")
+UPSTASH_REDIS_REST_URL = os.getenv("UPSTASH_REDIS_REST_URL")
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": f"redis://:{UPSTASH_REDIS_REST_TOKEN}@{UPSTASH_REDIS_REST_URL}",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
+    }
+}
 CELERY_BROKER_URL = 'rediss://:ARgjAAIjcDEzYzUxODMxN2NlMDA0ZTBmYjQ5Y2RkNWU0Mzg5MzM3MnAxMA@dashing-monkfish-6179.upstash.io:6379/0'  
 CELERY_RESULT_BACKEND = 'django-db'
 INSTALLED_APPS += ['django_celery_results']

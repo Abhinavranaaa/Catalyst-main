@@ -18,7 +18,7 @@ class Roadmap(models.Model):
         db_table = 'roadmaps'
         verbose_name = "Roadmap"
         verbose_name_plural = "Roadmaps"
-        unique_together = ('user', 'title')
+        # unique_together = ('user', 'title')
 
     def __str__(self):
         return self.title
@@ -32,3 +32,6 @@ class RoadmapQuestion(models.Model):
         db_table = 'roadmap_question'
         unique_together = (('roadmap', 'question'),) 
         managed = True
+
+
+# so the goal is to look in the cache if found then return from there else fetch from db and update the cache(hit miss, read through cache)

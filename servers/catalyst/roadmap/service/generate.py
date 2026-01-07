@@ -1,4 +1,4 @@
-from .profileSynthesis import buildUserProfile
+from .profileSynthesis import fetchUsrProfile
 from typing import Dict, Any, List, Optional
 from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
@@ -53,7 +53,10 @@ def generate_roadmap(user_id: str, subject: str, topic: str, additional_comments
     Full pipeline: builds user profile, fetches questions, and composes roadmap via LLM or fallback.
     """
     try:
-        profile = buildUserProfile(user_id)
+        start=time.time()
+        summary = fetchUsrProfile(user_id)
+        end=time.time()
+        logger.info(f"profile summary latency: {end - start:.3f} seconds")
         question_set = fetch_relevant_questions(subject, topic, MAX_QUESTIONS_PER_ROADMAP, additional_comments)
 
         if not question_set:
@@ -62,7 +65,7 @@ def generate_roadmap(user_id: str, subject: str, topic: str, additional_comments
 
         roadmap = generate_roadmap_blocks(
             llm=llm,
-            user_profile=profile["summary"],
+            user_profile=summary,
             subject=subject,
             topic=topic,
             additional_comments=additional_comments,
