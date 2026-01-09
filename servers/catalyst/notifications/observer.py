@@ -11,6 +11,7 @@ from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from smtplib import SMTPException
 import logging 
+from .services.qloo_service import get_audience
 
 logger = logging.getLogger(__name__)
 
@@ -62,9 +63,15 @@ class PushObserver(NotificationObserver):
                         "endpoint": sub.endpoint,
                         "keys": {"p256dh": sub.p256dh, "auth": sub.auth}
                     },
-                    data=json.dumps({"body": message}),
+                    ttl=3600,
+                    data=json.dumps({
+                        "version": 1,
+                        "type": "daily_notification",
+                        "title": "Catalyst",
+                        "body": message
+                        }),
                     vapid_private_key=settings.VAPID_PRIVATE_KEY,
-                    vapid_claims={"sub": "mailto:rmitu22@gmail.com"},
+                    vapid_claims={"sub": "mailto:rmitu22@gmail.com","aud":get_audience(sub.endpoint)},
                 )
             except WebPushException as e:
                 if hasattr(e, "response") and e.response and e.response.status_code in [404, 410]:

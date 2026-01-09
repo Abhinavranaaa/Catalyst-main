@@ -222,7 +222,7 @@ def process_daily_notifications_batch(user_ids: list[int]):
             Notification(
                 user=user,
                 message=message,
-                channel="email",
+                channel="email&Push",
                 keyword_used=keyword_used or "",
                 delivery_status=PENDING
             )
@@ -247,3 +247,10 @@ def process_daily_notifications_batch(user_ids: list[int]):
         [DELIVERY_STATUS]
     )
 
+
+# will have to change the architetcure here give a functionality of callbacks to update the notification status
+# will have to create separate objects for email and push notifications
+# callbac handling for push notifications as well
+# for now have a combined channel for these two 
+# commit the intention first and then make the changes to restore the state in case of a notifications system
+# will coninue for the fixes in phase 2

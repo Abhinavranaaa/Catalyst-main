@@ -10,6 +10,7 @@ from catalyst.ai_resources import generate_embedding_from_text
 from catalyst.constants import QLOO_URL,QLOO_URL_SEARCH,QLOO_URL_TAGS,MAX_RES_QLOO,MAX_QLOO_ITEMS,MOVIE_ENTITY,BOOK_ENTITY,TAG_TYPES,FALLBACK_TAGS
 from dotenv import load_dotenv
 import random
+from urllib.parse import urlparse
 
 
 if os.getenv("RENDER") != "true":
@@ -30,6 +31,11 @@ except LookupError:
 
 def pretty_print_json(data):
     print(json.dumps(data, indent=2))
+
+
+def get_audience(endpoint: str) -> str:
+    parsed = urlparse(endpoint)
+    return f"{parsed.scheme}://{parsed.netloc}"
 
 
 def extract_keywords(text: str) -> List[str]:

@@ -3,7 +3,5 @@ from notifications.views import triggerNotifications, save_push_subscription, ge
 
 urlpatterns = [
     path("trigger", triggerNotifications, name="generate-notifications"),
-    path('api/save-push-subscription', save_push_subscription),
-    path('api/vapid-public-key', get_vapid_public_key, name='vapid_public_key'),
     path("process-batch", process_notification_batch)
 ]

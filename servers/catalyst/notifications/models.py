@@ -20,7 +20,7 @@ class Notification(models.Model):
 
 class WebPushSubscription(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='push_subscriptions')
-    endpoint = models.TextField()
+    endpoint = models.TextField(unique=True)
     p256dh = models.TextField()
     auth = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
