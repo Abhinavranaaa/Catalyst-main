@@ -7,19 +7,20 @@ from rest_framework.permissions import AllowAny
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
-from notifications.services.batchProcessor import batchProcess
+from .services import batchProcess
 import json
 import logging
-from notifications.tasks import process_daily_notifications_batch
+from .tasks import process_daily_notifications_batch
+from catalyst import authenticate
+from users.models import User
 
 logger = logging.getLogger(__name__)
-
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def save_push_subscription(request):
     data = request.data
     obj, _ = WebPushSubscription.objects.update_or_create(
-        user=request.user,
+        user = User.objects.filter(id=authenticate(request)).first(),
         endpoint=data.get('endpoint'),
         defaults={
             'p256dh': data['keys']['p256dh'],

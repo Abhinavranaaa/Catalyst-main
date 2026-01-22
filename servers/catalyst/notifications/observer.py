@@ -2,7 +2,7 @@
 
 from django.core.mail import send_mail
 from catalyst.constants import CATALYST_EMAIL
-from .models import WebPushSubscription
+from notifications.models import WebPushSubscription
 from pywebpush import webpush, WebPushException
 import json
 from django.conf import settings
@@ -11,7 +11,7 @@ from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from smtplib import SMTPException
 import logging 
-from .services.qloo_service import get_audience
+from .services import get_audience
 
 logger = logging.getLogger(__name__)
 

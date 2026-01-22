@@ -1,42 +1,26 @@
 from django.shortcuts import render
 
 # Create your views here.
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
 from roadmap.service.generate import generate_roadmap,reshape_roadmap_for_response,save_roadmap_response
 from roadmap.serializers import GenerateRoadmapRequestSerializer
 import logging
 from notifications.tasks import process_user_interests_async
 from catalyst.constants import ADDITIONAL_COMMENTS
 import jwt
-from users.models import User
 from rest_framework.exceptions import AuthenticationFailed
 import time
+from catalyst import authenticate
 
 logger = logging.getLogger(__name__)
 
 @api_view(['POST'])
 # @permission_classes([IsAuthenticated])
 def generate_roadmap_view(request):
-    token = request.COOKIES.get("jwt")
-    if not token:
-        raise AuthenticationFailed("Unauthenticated")
-    try:
-        payload = jwt.decode(token, "secret", algorithms=["HS256"])
-    except jwt.ExpiredSignatureError:
-        raise AuthenticationFailed("Unauthenticated")
 
-    user_id = payload["id"]
-    #user_id = request.headers.get('X-User-ID')
-
-    if not user_id:
-        return Response(
-            {"error": "Missing User ID in headers"},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-    
+    user_id=authenticate(request)
     serializer = GenerateRoadmapRequestSerializer(data=request.data)
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

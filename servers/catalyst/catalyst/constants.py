@@ -105,3 +105,5 @@ PROFILE_TEMPLATE_2="""
 
         Keep it concise, grounded in the data, and easy for an LLM or a human coach to reuse in a personalized roadmap.
         """
+
+LAST_N_ATTEMPTS=5

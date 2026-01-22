@@ -2,7 +2,7 @@
 
 from celery import shared_task
 from users.models import UserProfile
-from notifications.services.qloo_service import fetch_qloo_interests, deduplicate_interests
+from .services.qloo_service import fetch_qloo_interests, deduplicate_interests
 from notifications.models import Notification
 from notifications.observer import EmailObserver, PushObserver, NotificationDistributor
 import logging
@@ -254,3 +254,10 @@ def process_daily_notifications_batch(user_ids: list[int]):
 # for now have a combined channel for these two 
 # commit the intention first and then make the changes to restore the state in case of a notifications system
 # will coninue for the fixes in phase 2
+
+
+# user will first login where the client will fetch the public vapid key
+# the client then subscribes to the push notifications where the browser layer generates a unique endpoint associated to the user and posts it to the backend
+# the subscription info is stored
+# backend pushes the notification to the browser
+# when the client is available it consumes 

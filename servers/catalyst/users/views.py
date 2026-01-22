@@ -3,7 +3,7 @@ from rest_framework.views import APIView
 from .serializers import UserSerializer , UserLoginSerializer
 from rest_framework.response import Response
 from rest_framework.exceptions import AuthenticationFailed
-from .models import User, UserProfile, Subscriber
+from users.models import User, UserProfile, Subscriber
 import jwt, datetime
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework import status
@@ -15,10 +15,11 @@ from .serializers import (
 )
 from rest_framework.decorators import api_view
 from catalyst.constants import CATALYST_EMAIL
-from notifications.observer import EmailObserver, NotificationDistributor
-from users.serializers import SerializeUserInfo
+from notifications.observer import EmailObserver
+from .serializers import SerializeUserInfo
 import logging
 from users.signals.createProfile import saveAndProcessUser
+from catalyst import authenticate
 
 
 logger = logging.getLogger(__name__)
@@ -311,22 +312,7 @@ class SubscribeView(APIView):
     
 @api_view(['POST'])
 def triggerOnboarding(request):
-    token = request.COOKIES.get("jwt")
-    if not token:
-        raise AuthenticationFailed("Unauthenticated")
-    try:
-        payload = jwt.decode(token, "secret", algorithms=["HS256"])
-    except jwt.ExpiredSignatureError:
-        raise AuthenticationFailed("Unauthenticated")
-
-    user_id = payload["id"]
-    #user_id = request.headers.get('X-User-ID')
-
-    if not user_id:
-        return Response(
-            {"error": "Missing User ID in headers"},
-            status=status.HTTP_400_BAD_REQUEST
-        )
+    user_id = authenticate(request)
     serializer = SerializeUserInfo(data=request.data)
     serializer.is_valid(raise_exception=False)
     response = saveAndProcessUser(user_id,**serializer.validated_data)
