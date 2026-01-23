@@ -428,13 +428,13 @@ def save_roadmap_response(user_id: int, raw_roadmap_data: Dict):
     description = raw_roadmap_data.get("description", "")
 
     with transaction.atomic():
-        roadmap, created = Roadmap.objects.get_or_create(user_id=user_id, title=title)
+        roadmap = Roadmap.objects.create(user_id=user_id, title=title)
         roadmap.description = description
         roadmap.generated_json = raw_roadmap_data
         roadmap.save()
 
         # Clear existing roadmap questions
-        RoadmapQuestion.objects.filter(roadmap=roadmap).delete()
+        # RoadmapQuestion.objects.filter(roadmap=roadmap).delete()
 
         for block in raw_roadmap_data.get("roadmapItems", []):
             for q in block.get("questions", []):

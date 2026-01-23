@@ -8,7 +8,7 @@ from roadmap.service.generate import generate_roadmap,reshape_roadmap_for_respon
 from roadmap.serializers import GenerateRoadmapRequestSerializer
 import logging
 from notifications.tasks import process_user_interests_async
-from catalyst.constants import ADDITIONAL_COMMENTS
+from catalyst.constants import ADDITIONAL_COMMENTS, ROADMAP_ID
 import jwt
 from rest_framework.exceptions import AuthenticationFailed
 import time
@@ -30,6 +30,7 @@ def generate_roadmap_view(request):
         roadmap = generate_roadmap(user_id=user_id, **serializer.validated_data)
         roadmap_formatted = reshape_roadmap_for_response(roadmap)
         roadmap_instance = save_roadmap_response(user_id, raw_roadmap_data=roadmap_formatted)
+        roadmap_formatted[ROADMAP_ID] = roadmap_instance.id
         comments = serializer.validated_data.get(ADDITIONAL_COMMENTS, '')
         end=time.time()
         logger.info(f"Total E2E latency: {end - start:.3f} seconds")

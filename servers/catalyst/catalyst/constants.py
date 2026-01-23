@@ -107,3 +107,4 @@ PROFILE_TEMPLATE_2="""
         """
 
 LAST_N_ATTEMPTS=5
+ROADMAP_ID = "roadmap_id"
