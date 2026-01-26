@@ -10,7 +10,7 @@ class RoadmapCompletionMetric(StatsMetrics):
             if a.is_correct
         }
 
-        total = len(ctx.roadmap_questions)
+        total = len(ctx.question_lookup)
 
         return {
             "roadmap_completion_pct": round(

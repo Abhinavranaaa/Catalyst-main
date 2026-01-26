@@ -18,7 +18,6 @@ class Roadmap(models.Model):
         db_table = 'roadmaps'
         verbose_name = "Roadmap"
         verbose_name_plural = "Roadmaps"
-        # unique_together = ('user', 'title')
 
     def __str__(self):
         return self.title
@@ -27,7 +26,15 @@ class Roadmap(models.Model):
 class RoadmapQuestion(models.Model):
     roadmap = models.ForeignKey(Roadmap, on_delete=models.CASCADE)
     question = models.ForeignKey(Question, on_delete=models.CASCADE)
-
+    status = models.CharField(
+        max_length=50,
+        default="unanswered",
+        choices=[
+            ("answered", "Answered"),
+            ("unanswered", "Unanswered"),
+        ]
+    )
+    
     class Meta:
         db_table = 'roadmap_question'
         unique_together = (('roadmap', 'question'),) 

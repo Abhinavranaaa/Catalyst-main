@@ -1,4 +1,4 @@
-from roadmap.models import RoadmapQuestion
+from roadmap.models import RoadmapQuestion,Roadmap
 from ..models import Answer
 import logging
 
@@ -22,4 +22,12 @@ def fetchRoadmapAttempts(roadmap)->list:
         logger.exception("Exception e: %s, occured while fetching from db",e)
         raise
 
+def fetchRoadmap(roadmap_id):
+    try:
+        roadmap = Roadmap.objects.filter(id=roadmap_id).first()
+        logging.info("Successfully fetched roadmap")
+        return roadmap
+    except Exception as e:
+        logger.exception("Exception e: %s, occured while fetching from db",e)
+        raise
 

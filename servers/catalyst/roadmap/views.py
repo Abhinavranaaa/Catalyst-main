@@ -4,8 +4,8 @@ from django.shortcuts import render
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
-from roadmap.service.generate import generate_roadmap,reshape_roadmap_for_response,save_roadmap_response
-from roadmap.serializers import GenerateRoadmapRequestSerializer
+from roadmap.service.generate import generate_roadmap,reshape_roadmap_for_response,save_roadmap_response,fetchRoadmapJson
+from roadmap.serializers import GenerateRoadmapRequestSerializer, GetRoadmapRequestSerializer
 import logging
 from notifications.tasks import process_user_interests_async
 from catalyst.constants import ADDITIONAL_COMMENTS, ROADMAP_ID
@@ -55,6 +55,31 @@ def generate_roadmap_view(request):
         return Response(
             {
                 "error": "An unexpected error occurred while generating the roadmap. Please try again later."
+            },
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+    
+@api_view(['GET'])
+def getRoadmapJson(request):
+    user_id=authenticate(request)
+    serializer = GetRoadmapRequestSerializer(data=request.query_params)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        roadmapJson =fetchRoadmapJson(**serializer.validated_data)
+        logger.info("successfully fetched the roadmap json and processing the response")
+        return Response(
+            {
+                "message": "Roadmap generated successfully",
+                "data": roadmapJson
+            },
+            status=status.HTTP_200_OK
+        )
+    except Exception:
+        logger.exception("Internal server error during roadmap fetch")
+        return Response(
+            {
+                "error": "An unexpected error occurred while fetching the roadmap. Please try again later."
             },
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )

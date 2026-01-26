@@ -7,7 +7,7 @@ import logging
 from langchain_cerebras import ChatCerebras
 import os
 from dotenv import load_dotenv
-from catalyst.constants import MAX_QUESTIONS_PER_ROADMAP, COLLECTION_NAME, LLM_MODEL, MAX_TOKENS, LLM_TEMP2
+from catalyst.constants import MAX_QUESTIONS_PER_ROADMAP, COLLECTION_NAME, LLM_MODEL, MAX_TOKENS, LLM_TEMP2, ROADMAP_ID
 from qdrant_client import QdrantClient
 import torch
 from catalyst.ai_resources import generate_embedding_from_text
@@ -20,7 +20,11 @@ from django.db import transaction
 from roadmap.models import Roadmap, RoadmapQuestion, Question
 from catalyst.utils import remove_think_blocks 
 import uuid
-import time 
+import time
+from practice.helper import fetchRoadmap
+from django.core.exceptions import ValidationError
+
+
 
 logger = logging.getLogger(__name__)
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -397,6 +401,7 @@ def reshape_roadmap_for_response(raw_roadmap: dict) -> dict:
                 "options": q.get("options", []),
                 "correct_index": q.get("correct_index", 0),
                 "isBookmarked": False,
+                "status": "unanswered",
                 "difficulty": q.get("difficulty", "Medium").capitalize()
             }
             item["questions"].append(question)
@@ -428,14 +433,13 @@ def save_roadmap_response(user_id: int, raw_roadmap_data: Dict):
     description = raw_roadmap_data.get("description", "")
 
     with transaction.atomic():
+
         roadmap = Roadmap.objects.create(user_id=user_id, title=title)
         roadmap.description = description
         roadmap.generated_json = raw_roadmap_data
         roadmap.save()
 
-        # Clear existing roadmap questions
-        # RoadmapQuestion.objects.filter(roadmap=roadmap).delete()
-
+        question_id = set()
         for block in raw_roadmap_data.get("roadmapItems", []):
             for q in block.get("questions", []):
                 qid = q.get("id")
@@ -443,18 +447,68 @@ def save_roadmap_response(user_id: int, raw_roadmap_data: Dict):
                     continue
                 try:
                     question_uuid = uuid.UUID(qid)
+                    question_id.add(question_uuid)
                 except (ValueError, TypeError, AttributeError):
                     continue
-
-                try:
-                    question_obj = Question.objects.get(id=question_uuid)
-                except Question.DoesNotExist:
-                    continue
-
-                RoadmapQuestion.objects.create(
-                    roadmap=roadmap,
-                    question=question_obj,
-                )
+        
+        questions = Question.objects.in_bulk(question_id)
+        roadmap_questions = [
+            RoadmapQuestion(roadmap=roadmap,question=quest,status='unanswered')
+            for quest in questions.values()
+        ]
+        RoadmapQuestion.objects.bulk_create(roadmap_questions,ignore_conflicts=True)
 
     return roadmap
+
+
+def sync_roadmap_json_with_question_status(
+    roadmap
+) -> Dict:
+    """
+    Sync roadmap.generated_json with latest RoadmapQuestion.status
+    Avoids N+1 queries and works for both create & fetch flows.
+    """
+
+    if not roadmap.generated_json:
+        return {}
+
+    roadmap_json = roadmap.generated_json
+
+    roadmap_questions = (
+        RoadmapQuestion.objects
+        .filter(roadmap=roadmap)
+        .only("question_id", "status")
+    )
+
+    status_map = {
+        str(rq.question_id): rq.status
+        for rq in roadmap_questions
+    }
+
+    for block in roadmap_json.get("roadmapItems", []):
+        for q in block.get("questions", []):
+            qid = q.get("id")
+            if not qid:
+                continue
+            q["status"] = status_map.get(qid, "unanswered")
+
+    return roadmap_json
+
+
+def fetchRoadmapJson(roadmap_id: str) -> Dict:
+    try:
+        roadmap_uuid = uuid.UUID(roadmap_id)
+    except (ValueError, TypeError):
+        raise ValidationError(f"Invalid roadmap_id: {roadmap_id}")
+
+    roadmap = fetchRoadmap(roadmap_id=roadmap_uuid)
+    result = roadmap.generated_json
+    result[ROADMAP_ID] = str(roadmap_uuid)
+    return result
+    
+    
+
+
+
+
 

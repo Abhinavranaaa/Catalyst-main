@@ -1,13 +1,13 @@
 from django.db import transaction
 from django.utils import timezone
 from ..models import Answer
-from ..helper import fetchRoadmapAttempts
-from ..helper import fetchRoadmapQuestions
+from ..helper import fetchRoadmapAttempts, fetchRoadmapQuestions, fetchRoadmap
 import logging
 from ..StatsContext import StatsContext
 from ..metrics import *
 from users.models import User
-from roadmap.models import Roadmap
+from roadmap.models import Roadmap, RoadmapQuestion
+from roadmap.service.generate import sync_roadmap_json_with_question_status
 
 
 
@@ -17,10 +17,15 @@ def processAttempts(
     user_id:str,
     roadmap_id:str,
     attempts: list[dict]
-)->dict:  
+)->dict:
+    roadmap = fetchRoadmap(roadmap_id=roadmap_id)
     roadmap_questions = fetchRoadmapQuestions(roadmap_id)
-    submitted_attempts = insertAttempts(user_id,roadmap_id,attempts,roadmap_questions)
+    question_map = {rq.question.id: rq.question for rq in roadmap_questions}
+    submitted_attempts = insertAttempts(user_id,roadmap,attempts,question_map)
+    updateRoadmapQuestions(roadmap_questions=roadmap_questions,submitted_attempts=submitted_attempts)
+    updateRoadmapJson(roadmap)
     roadmap_attempts = fetchRoadmapAttempts(roadmap_id)
+
     engine = FactoryEngine([
     AccuracyMetric(),
     MeanTimeMetric(),
@@ -30,29 +35,24 @@ def processAttempts(
     ctx = StatsContext(
     submitted_attempts=submitted_attempts,
     all_attempts=roadmap_attempts,
-    roadmap_questions=roadmap_questions,
+    question_lookup=question_map,
     )
     stats = engine.run(ctx)
     return stats
 
 
 
-
-
-
 def insertAttempts(
     user_id:str,
-    roadmap_id:str,
+    roadmap,
     attempts: list[dict],
-    roadmap_questions:list
+    question_map:dict
 )->list:
     """
     Insert immutable attempt events in bulk.
     """
     
-    question_map = {rq.question.id: rq.question for rq in roadmap_questions}
     user = User.objects.filter(id=user_id).first()
-    roadmap = Roadmap.objects.filter(id=roadmap_id).first()
     now = timezone.now()
     answer_rows = []
     
@@ -63,6 +63,13 @@ def insertAttempts(
         time_taken = attempt.get("time_taken_seconds")
         question = question_map.get(question_id)
         if not question:
+            logger.warning(
+                "Invalid question attempt: roadmap_id=%s question_id=%s user_id=%s",
+                roadmap.id,
+                question_id,
+                user_id,
+            )
+
             continue
 
         is_correct = selected_index == question.correct_index
@@ -87,3 +94,27 @@ def insertAttempts(
     return answer_rows
 
 
+def updateRoadmapQuestions(roadmap_questions: list, submitted_attempts: list):
+    to_update = []
+    question_map = {rq.question.id: rq for rq in roadmap_questions}
+    for attempt in submitted_attempts:
+        rq = question_map.get(attempt.question.id)
+        if not rq:
+            continue
+
+        if rq.status == "unanswered" and attempt.is_correct:
+            rq.status = "answered"
+            to_update.append(rq)
+
+    if to_update:
+        RoadmapQuestion.objects.bulk_update(
+            to_update,
+            ["status"]
+        )
+    return to_update
+
+    
+def updateRoadmapJson(roadmap):
+    updated_json = sync_roadmap_json_with_question_status(roadmap)
+    roadmap.generated_json = updated_json
+    roadmap.save(update_fields=["generated_json"])
