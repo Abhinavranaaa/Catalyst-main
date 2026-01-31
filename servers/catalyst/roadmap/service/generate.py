@@ -7,7 +7,8 @@ import logging
 from langchain_cerebras import ChatCerebras
 import os
 from dotenv import load_dotenv
-from catalyst.constants import MAX_QUESTIONS_PER_ROADMAP, COLLECTION_NAME, LLM_MODEL, MAX_TOKENS, LLM_TEMP2, ROADMAP_ID
+from catalyst.constants import MAX_QUESTIONS_PER_ROADMAP, COLLECTION_NAME, LLM_MODEL, MAX_TOKENS, LLM_TEMP2, ROADMAP_ID, PROMPT_TEMPLATE_V2
+from notifications.services import normalize_interest
 from qdrant_client import QdrantClient
 import torch
 from catalyst.ai_resources import generate_embedding_from_text
@@ -61,7 +62,9 @@ def generate_roadmap(user_id: str, subject: str, topic: str, additional_comments
         summary = fetchUsrProfile(user_id)
         end=time.time()
         logger.info(f"profile summary latency: {end - start:.3f} seconds")
-        question_set = fetch_relevant_questions(subject, topic, MAX_QUESTIONS_PER_ROADMAP, additional_comments)
+        qdrant_hits = fetch_relevant_questions(subject, topic, MAX_QUESTIONS_PER_ROADMAP, additional_comments)
+        question_data = _fetch_question_metadata(qdrant_hits)
+        question_set = _format_results(qdrant_hits, question_data)
 
         if not question_set:
             logger.warning("No relevant questions found. Falling back to generic roadmap.")
@@ -75,8 +78,11 @@ def generate_roadmap(user_id: str, subject: str, topic: str, additional_comments
             additional_comments=additional_comments,
             questions=question_set
         )
-        # save roadmap logic 
-        return roadmap
+
+        roadmap_formatted = reshape_roadmap_for_response(roadmap,question_data)
+
+
+        return roadmap_formatted,roadmap
 
     except Exception as e:
         logger.error(f"Critical failure in roadmap pipeline: {e}", exc_info=True)
@@ -88,7 +94,7 @@ def fetch_relevant_questions(
     topic: str,
     top_k: int,
     additional_comments: Optional[str] = ""
-) -> List[Dict]:
+):
     """
     Retrieves the most relevant questions by querying a vector search index (Qdrant)
     using semantic similarity, then fetching rich metadata from the relational DB.
@@ -97,8 +103,7 @@ def fetch_relevant_questions(
         query_text = f"Subject: {subject}. Topic: {topic}. {additional_comments}".strip()
         query_vector = generate_embedding_from_text(query_text)
         qdrant_hits = _query_qdrant(query_vector, top_k)
-        question_data = _fetch_question_metadata(qdrant_hits)
-        return _format_results(qdrant_hits, question_data)
+        return qdrant_hits
 
     except Exception as e:
         logger.error(f"🔥 Failed to fetch relevant questions: {e}", exc_info=True)
@@ -205,62 +210,7 @@ def generate_roadmap_blocks(
     ]
 
     # Explicit prompt with clear instructions on using user profile for selection and grouping
-    template = """
-        You are an expert education strategist and curriculum designer.
-
-        You must generate a personalized learning roadmap based on the following:
-
-        === USER PROFILE ===
-        {user_profile}
-
-        === LEARNING CONTEXT ===
-        - Subject: {subject}
-        - Topic: {topic}
-        - Additional Comments: {additional_comments}
-
-        === QUESTION BANK ===
-        {questions_data}
-
-        TASK:
-        - Use the user profile to prioritize weak topics and adjust difficulty sequencing.
-        - Drop redundant or irrelevant questions.
-        - Organize questions into logical learning blocks of dynamic count and size.
-        - Each block must have a title, description, estimated time.
-        - Each question must include id, text, difficulty, topic, 4 options, and a learning objective.
-        - Start from easier concepts, progress to advanced.
-        - STRICTLY output valid JSON, no extra text, no markdown, no prefix or suffix.
-
-        OUTPUT FORMAT:
-        {{
-        "roadmap_title": "Personalized Learning Path for {topic}",
-        "total_blocks": [calculated integer],
-        "estimated_duration": "[e.g. '2 hours']",
-        "difficulty_level": "[beginner/intermediate/advanced/mixed]",
-        "blocks": [
-            {{
-            "block_number": 1,
-            "block_title": "Block title",
-            "block_description": "What this block covers and how it helps",
-            "estimated_time": "30 minutes",
-            ""difficulty": "difficulty of the block that is the avarage difficulty of the questions in that block/item",
-            "questions": [
-                {{
-                "question_id": "q123" or "synthetic_1",
-                "question_text": "question text",
-                "difficulty": "easy/medium/hard",
-                "topic": "micro-topic",
-                "options": ["option1", "option2", "option3", "option4"],
-                "correct_index": "correct option for the question",
-                "learning_objective": "Learner gains X"
-                }}
-            ]
-            }}
-        ],
-        "learning_tips": "1-2 practical, motivational tips"
-        }}
-
-        ONLY output valid JSON. No markdown, no explanations, no extraneous text.
-        """
+    template = PROMPT_TEMPLATE_V2
     prompt = PromptTemplate.from_template(template)
 
     chain = LLMChain(llm=llm, prompt=prompt)
@@ -278,7 +228,6 @@ def generate_roadmap_blocks(
         logger.info(f"Cerebras LLM latency roadmap: {end - start:.3f} seconds")
         response_text = response if isinstance(response, str) else str(response)
         roadmap = parse_llm_response_to_json(response_text, debug_log=logger.debug)
-
         if not roadmap:
             logger.error(" Roadmap output could not be parsed even after fallback.")
             return create_fallback_roadmap(questions)
@@ -374,37 +323,67 @@ def parse_llm_response_to_json(response: Union[str, dict], debug_log: Optional[c
 
     return None
         
-def reshape_roadmap_for_response(raw_roadmap: dict) -> dict:
+def reshape_roadmap_for_response(raw_roadmap: dict,questions: Dict[str, Question]) -> dict:
     """
     Convert internal roadmap representation to the expected JSON response format,
     preserving your keys and setting isSaved and isExpanded to False.
     Pagination and metadata are omitted as requested.
     """
     roadmap_items = []
+    difficulty_map={
+        "easy":1,
+        "medium":2,
+        "hard":3
+    }
+    score_difficulty_map = {
+        1: "Easy",
+        2: "Medium",
+        3: "Hard"
+    }
+
     for idx, block in enumerate(raw_roadmap.get("blocks", []), start=1):
         item = {
             "id": f"block-{idx:03d}", 
             "title": block.get("block_title", f"Block {idx}"),
             "summary": block.get("block_description", ""),
-            "difficulty": block.get("difficulty", "Medium").capitalize() if "difficulty" in block else "Medium",
             "progressPercentage": 0,
             "isSaved": False,
             "isExpanded": False,
             "questions": []
         }
-
+        score_diff = 0
+        ct = 0
         for q in block.get("questions", []):
-            question = {
+            qid = q.get("question_id")
+            ques = questions.get(qid)
+
+            if not ques:
+                logger.warning(f"Question id {qid} not found in question lookup. Skipping.")
+                continue
+            score_diff+=difficulty_map[normalize_difficulty(ques.difficulty)]
+            ct+=1
+            if ques:
+                question = {
                 "id": q.get("question_id", ""),
-                "title": q.get("question_text", "")[:50],
                 "question_text": q.get("question_text", ""),
-                "options": q.get("options", []),
-                "correct_index": q.get("correct_index", 0),
+                "options": ques.options,
+                "topic": q.get("topic",""),
+                "correct_index": ques.correct_index,
                 "isBookmarked": False,
                 "status": "unanswered",
-                "difficulty": q.get("difficulty", "Medium").capitalize()
-            }
+                "difficulty": ques.difficulty
+                }
+            else: 
+                logger.warning("No relevant questions found. skipping the q_id due to invalid q_id")
+            
+
+            
             item["questions"].append(question)
+
+        avg_difficulty_score = round(score_diff / ct)
+        item["difficulty"] = score_difficulty_map.get(
+                avg_difficulty_score, "Medium"
+            )
 
         roadmap_items.append(item)
 
@@ -412,7 +391,7 @@ def reshape_roadmap_for_response(raw_roadmap: dict) -> dict:
         "roadmapItems": roadmap_items,
     }
 
-def save_roadmap_response(user_id: int, raw_roadmap_data: Dict):
+def save_roadmap_response(user_id: int, raw_roadmap_data: Dict,raw_roadmap: dict, subject:str, topic:str):
     """
     Saves the processed roadmap JSON into Roadmap model's `generated_json`,
     populates other roadmap fields (title, description if any),
@@ -425,20 +404,24 @@ def save_roadmap_response(user_id: int, raw_roadmap_data: Dict):
     Returns:
         Roadmap instance updated or created.
     """
+    unique_topics = extract_unique_topics(raw_roadmap,topic)
 
-    title = raw_roadmap_data.get(
+    title = raw_roadmap.get(
         "roadmap_title",
         raw_roadmap_data.get("roadmapItems", [{}])[0].get("title", "User Roadmap")
     )
-    description = raw_roadmap_data.get("description", "")
+    description = raw_roadmap.get("roadmap_description")
 
     with transaction.atomic():
 
-        roadmap = Roadmap.objects.create(user_id=user_id, title=title)
-        roadmap.description = description
-        roadmap.generated_json = raw_roadmap_data
-        roadmap.save()
-
+        roadmap = Roadmap.objects.create(
+            user_id=user_id,
+            title=title,
+            description=description,
+            generated_json=raw_roadmap_data,
+            subject=subject,
+            topics=unique_topics
+        )
         question_id = set()
         for block in raw_roadmap_data.get("roadmapItems", []):
             for q in block.get("questions", []):
@@ -507,6 +490,36 @@ def fetchRoadmapJson(roadmap_id: str) -> Dict:
     return result
     
     
+def extract_unique_topics(raw_roadmap: dict, topic: str) -> list[str]:
+    seen: set[str] = set()
+    seen.add(topic)
+    unique_topics: list[str] = []
+
+    main_topic = normalize_interest(topic)
+    if main_topic:
+        seen.add(main_topic)
+        unique_topics.append(main_topic)
+
+    for block in raw_roadmap.get("blocks", []):
+        for q in block.get("questions", []):
+            raw_topic = q.get("topic", "")
+            norm_topic = normalize_interest(raw_topic)
+
+            if not norm_topic:
+                continue
+
+            if norm_topic in seen:
+                continue
+
+            seen.add(norm_topic)
+            unique_topics.append(norm_topic)
+
+    return unique_topics
+
+def normalize_difficulty(difficulty: str) -> str:
+    if not difficulty:
+        return "medium"
+    return difficulty.strip().lower()
 
 
 

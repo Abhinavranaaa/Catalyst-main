@@ -27,9 +27,9 @@ def generate_roadmap_view(request):
 
     try:
         start=time.time()
-        roadmap = generate_roadmap(user_id=user_id, **serializer.validated_data)
-        roadmap_formatted = reshape_roadmap_for_response(roadmap)
-        roadmap_instance = save_roadmap_response(user_id, raw_roadmap_data=roadmap_formatted)
+        validated_data = serializer.validated_data
+        roadmap_formatted,roadmap = generate_roadmap(user_id=user_id, **validated_data)
+        roadmap_instance = save_roadmap_response(user_id, raw_roadmap_data=roadmap_formatted, raw_roadmap=roadmap,subject=validated_data.get("subject"),topic=validated_data.get("topic"),)
         roadmap_formatted[ROADMAP_ID] = roadmap_instance.id
         comments = serializer.validated_data.get(ADDITIONAL_COMMENTS, '')
         end=time.time()

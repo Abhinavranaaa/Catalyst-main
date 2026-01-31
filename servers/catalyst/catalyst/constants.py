@@ -1,4 +1,4 @@
-MAX_QUESTIONS_PER_ROADMAP = 20
+MAX_QUESTIONS_PER_ROADMAP = 30
 TRANSFORMERS_MODEL = "all-MiniLM-L6-v2"
 COLLECTION_NAME = "questions"
 LLM_MODEL = "qwen-3-235b-a22b-instruct-2507"
@@ -108,3 +108,164 @@ PROFILE_TEMPLATE_2="""
 
 LAST_N_ATTEMPTS=5
 ROADMAP_ID = "roadmap_id"
+
+PROMPT_TEMPLATE_V2 = """
+You are an expert education strategist and curriculum designer.
+
+Your sole task is to organize an existing question bank into a precise, personalized learning roadmap.
+You MUST NOT create, invent, rephrase, or synthesize any new questions.
+
+You must strictly follow all instructions and output ONLY valid JSON.
+
+====================
+USER PROFILE
+====================
+{user_profile}
+
+====================
+LEARNING CONTEXT
+====================
+Subject: {subject}
+Primary Topic: {topic}
+Additional Comments: {additional_comments}
+
+====================
+QUESTION BANK (SOURCE OF TRUTH)
+====================
+{questions_data}
+
+IMPORTANT:
+- You may ONLY use questions provided in the QUESTION BANK
+- Every question_id in the output MUST exist in the input
+- If a question is irrelevant, it must be DROPPED (not replaced)
+
+====================
+TASK
+====================
+1. Personalization & Progression
+   - Analyze the user profile to identify strengths, gaps, and weak areas
+   - Refine the learning progression to:
+     - Start with foundational concepts
+     - Gradually move to applied and advanced concepts
+   - Adjust ordering and grouping to best fit the learner’s needs
+
+2. Question Filtering & Ordering
+   - Remove redundant or off-topic questions
+   - Maintain a strict, continuous learning order:
+     - Earlier blocks enable later blocks
+     - No conceptual jumps or regressions
+   - Preserve original question wording and intent
+
+3. Learning Block Construction
+   - Create a dynamic number of blocks
+   - Block sizes and question counts may vary
+   - Each block must group questions that:
+     - Share the same core concept or micro-topic
+     - Build logically on each other
+   - Do NOT mix unrelated concepts in the same block
+
+4. Question Integrity (STRICT)
+   Each question MUST include:
+   - question_id (from input only)
+   - question_text (unchanged)
+   - topic (specific micro-topic)
+   - learning_objective (single, clear outcome)
+
+====================
+OUTPUT RULES (STRICT)
+====================
+- Output ONLY valid JSON
+- No markdown
+- No explanations
+- No comments
+- No trailing commas
+- No additional keys outside the schema
+- Maintain stable key ordering as shown below
+
+====================
+OUTPUT FORMAT
+====================
+{{
+  "roadmap_title": "Personalized Learning Path for {topic}",
+  "roadmap_description": "Two concise lines summarizing what the learner will master and how the roadmap progresses conceptually.",
+  "total_blocks": <integer>,
+  "estimated_duration": "<e.g. '2 hours'>",
+  "difficulty_level": "<beginner | intermediate | advanced | mixed>",
+  "blocks": [
+    {{
+      "block_number": 1,
+      "block_title": "Block title",
+      "block_description": "What this block covers and how it prepares the learner for the next block",
+      "estimated_time": "30 minutes",
+      "questions": [
+        {{
+          "question_id": "existing_question_id",
+          "question_text": "Exact question text from input",
+          "topic": "specific micro-topic",
+          "learning_objective": "Learner gains X"
+        }}
+      ]
+    }}
+  ],
+  "learning_tips": "1–2 short, practical and motivating tips"
+}}
+
+ONLY output valid JSON. No prefix. No suffix.
+"""
+
+PROMPT_TEMPLATE_V1 = """
+        You are an expert education strategist and curriculum designer.
+
+        You must generate a personalized learning roadmap based on the following:
+
+        === USER PROFILE ===
+        {user_profile}
+
+        === LEARNING CONTEXT ===
+        - Subject: {subject}
+        - Topic: {topic}
+        - Additional Comments: {additional_comments}
+
+        === QUESTION BANK ===
+        {questions_data}
+
+        TASK:
+        - Use the user profile to prioritize weak topics and adjust difficulty sequencing.
+        - Drop redundant or irrelevant questions.
+        - Organize questions into logical learning blocks of dynamic count and size.
+        - Each block must have a title, description, estimated time.
+        - Each question must include id, text, difficulty, topic, 4 options, and a learning objective.
+        - Start from easier concepts, progress to advanced.
+        - STRICTLY output valid JSON, no extra text, no markdown, no prefix or suffix.
+
+        OUTPUT FORMAT:
+        {{
+        "roadmap_title": "Personalized Learning Path for {topic}",
+        "total_blocks": [calculated integer],
+        "estimated_duration": "[e.g. '2 hours']",
+        "difficulty_level": "[beginner/intermediate/advanced/mixed]",
+        "blocks": [
+            {{
+            "block_number": 1,
+            "block_title": "Block title",
+            "block_description": "What this block covers and how it helps",
+            "estimated_time": "30 minutes",
+            ""difficulty": "difficulty of the block that is the avarage difficulty of the questions in that block/item",
+            "questions": [
+                {{
+                "question_id": "q123" or "synthetic_1",
+                "question_text": "question text",
+                "difficulty": "easy/medium/hard",
+                "topic": "micro-topic",
+                "options": ["option1", "option2", "option3", "option4"],
+                "correct_index": "correct option for the question",
+                "learning_objective": "Learner gains X"
+                }}
+            ]
+            }}
+        ],
+        "learning_tips": "1-2 practical, motivational tips"
+        }}
+
+        ONLY output valid JSON. No markdown, no explanations, no extraneous text.
+        """

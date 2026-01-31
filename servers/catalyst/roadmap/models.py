@@ -2,11 +2,14 @@ import uuid
 from django.db import models
 from question.models import Question
 from users.models import User
+from django.contrib.postgres.fields import ArrayField
 
 class Roadmap(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(User, on_delete=models.CASCADE, blank=True, null=True)
-    title = models.CharField(max_length=255)
+    title = models.CharField(max_length=255, blank=True, null=True)
+    subject = models.CharField(max_length=255, blank=True, null=True)
+    topics = ArrayField(models.TextField(), blank=True,null=True) 
     description = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True, blank=True, null=True)
     modified_at = models.DateTimeField(auto_now=True, blank=True, null=True)

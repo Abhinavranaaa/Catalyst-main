@@ -11,6 +11,7 @@ from catalyst.constants import QLOO_URL,QLOO_URL_SEARCH,QLOO_URL_TAGS,MAX_RES_QL
 from dotenv import load_dotenv
 import random
 from urllib.parse import urlparse
+import re
 
 
 if os.getenv("RENDER") != "true":
@@ -50,8 +51,16 @@ def extract_keywords(text: str) -> List[str]:
     return unique_keywords
 
 
-def normalize_interest(interest: str) -> str:
-    return interest.strip().lower().replace("-", " ").replace("_", " ")
+def normalize_interest(topic: str) -> str:
+        if not topic:
+            return ""
+
+        topic = topic.lower().strip()
+        topic = re.sub(r"[-_]", " ", topic)
+        topic = re.sub(r"\s+", " ", topic)
+        topic = re.sub(r"[^\w\s]", "", topic)
+
+        return topic
 
 
 def cosine_similarity(candidate_emb: np.ndarray, existing_embeds: np.ndarray) -> np.ndarray:
