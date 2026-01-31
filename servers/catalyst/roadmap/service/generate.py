@@ -82,7 +82,10 @@ def generate_roadmap(user_id: str, subject: str, topic: str, additional_comments
         roadmap_formatted = reshape_roadmap_for_response(roadmap,question_data)
 
 
-        return roadmap_formatted,roadmap
+        return {
+            "formatted": roadmap_formatted,
+            "raw": roadmap
+        }
 
     except Exception as e:
         logger.error(f"Critical failure in roadmap pipeline: {e}", exc_info=True)

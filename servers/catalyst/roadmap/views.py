@@ -28,7 +28,9 @@ def generate_roadmap_view(request):
     try:
         start=time.time()
         validated_data = serializer.validated_data
-        roadmap_formatted,roadmap = generate_roadmap(user_id=user_id, **validated_data)
+        response = generate_roadmap(user_id=user_id, **validated_data)
+        roadmap_formatted = response["formatted"]
+        roadmap = response["raw"]
         roadmap_instance = save_roadmap_response(user_id, raw_roadmap_data=roadmap_formatted, raw_roadmap=roadmap,subject=validated_data.get("subject"),topic=validated_data.get("topic"),)
         roadmap_formatted[ROADMAP_ID] = roadmap_instance.id
         comments = serializer.validated_data.get(ADDITIONAL_COMMENTS, '')
@@ -42,6 +44,12 @@ def generate_roadmap_view(request):
             status=status.HTTP_201_CREATED
         )
         
+    except KeyError as e:
+        logger.error("Roadmap response missing key: %s", e)
+        return Response(
+            {"message": "Invalid roadmap response"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
     except ValueError as ve:
         logger.warning(f"Business validation error: {ve}")
