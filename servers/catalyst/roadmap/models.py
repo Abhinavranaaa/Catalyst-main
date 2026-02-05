@@ -13,8 +13,15 @@ class Roadmap(models.Model):
     description = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True, blank=True, null=True)
     modified_at = models.DateTimeField(auto_now=True, blank=True, null=True)
-
-    # New JSONField to store full generated roadmap JSON
+    avg_difficulty = models.CharField(
+        max_length=20,
+        default="Medium",
+        choices=[
+            ("medium", "Medium"),
+            ("easy", "Easy"),
+            ("hard", "Hard"),
+        ]
+    )
     generated_json = models.JSONField(blank=True, null=True)
 
     class Meta:
@@ -44,4 +51,3 @@ class RoadmapQuestion(models.Model):
         managed = True
 
 
-# so the goal is to look in the cache if found then return from there else fetch from db and update the cache(hit miss, read through cache)

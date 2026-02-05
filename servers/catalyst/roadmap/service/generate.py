@@ -344,6 +344,8 @@ def reshape_roadmap_for_response(raw_roadmap: dict,questions: Dict[str, Question
         3: "Hard"
     }
 
+    roadmap_difficulty = 0
+    roadmap_question = 0
     for idx, block in enumerate(raw_roadmap.get("blocks", []), start=1):
         item = {
             "id": f"block-{idx:03d}", 
@@ -364,7 +366,9 @@ def reshape_roadmap_for_response(raw_roadmap: dict,questions: Dict[str, Question
                 logger.warning(f"Question id {qid} not found in question lookup. Skipping.")
                 continue
             score_diff+=difficulty_map[normalize_difficulty(ques.difficulty)]
+            roadmap_difficulty+=score_diff
             ct+=1
+            roadmap_question+=1
             if ques:
                 question = {
                 "id": q.get("question_id", ""),
@@ -379,8 +383,6 @@ def reshape_roadmap_for_response(raw_roadmap: dict,questions: Dict[str, Question
             else: 
                 logger.warning("No relevant questions found. skipping the q_id due to invalid q_id")
             
-
-            
             item["questions"].append(question)
 
         avg_difficulty_score = round(score_diff / ct)
@@ -390,8 +392,11 @@ def reshape_roadmap_for_response(raw_roadmap: dict,questions: Dict[str, Question
 
         roadmap_items.append(item)
 
+    roadmap_difficulty = round(roadmap_difficulty/roadmap_question)
+    avg_roadmap_difficulty = score_difficulty_map.get(avg_difficulty_score, "Medium")
     return {
         "roadmapItems": roadmap_items,
+        "avg_difficulty": avg_roadmap_difficulty
     }
 
 def save_roadmap_response(user_id: int, raw_roadmap_data: Dict,raw_roadmap: dict, subject:str, topic:str):
@@ -421,6 +426,7 @@ def save_roadmap_response(user_id: int, raw_roadmap_data: Dict,raw_roadmap: dict
             user_id=user_id,
             title=title,
             description=description,
+            avg_difficulty = raw_roadmap_data.get("avg_difficulty","Medium"),
             generated_json=raw_roadmap_data,
             subject=subject,
             topics=unique_topics

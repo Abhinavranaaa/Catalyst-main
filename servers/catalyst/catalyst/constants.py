@@ -1,7 +1,7 @@
 MAX_QUESTIONS_PER_ROADMAP = 30
 TRANSFORMERS_MODEL = "all-MiniLM-L6-v2"
 COLLECTION_NAME = "questions"
-LLM_MODEL = "qwen-3-235b-a22b-instruct-2507"
+LLM_MODEL = "qwen-3-32b"
 LLM_MODEL_NOTIFICATIONS = "llama-3.1-8b"
 LLM_MODEL_PROFILE = "llama-3.3-70b"
 QLOO_URL="https://hackathon.api.qloo.com/v2/insights"
@@ -269,3 +269,64 @@ PROMPT_TEMPLATE_V1 = """
 
         ONLY output valid JSON. No markdown, no explanations, no extraneous text.
         """
+
+ROADMAP_TITLE = "roadmap_title"
+ROADMAP_DIFFICULTY = "avg_difficulty"
+EASY = "Easy"
+MEDIUM = "Medium"
+HARD = "Hard"
+ROADMAP_DESCRIPTION = "roadmap_description"
+ROADMAP_ITEMS = "roadmapItems"
+TITLE = "title"
+DEFAULT_TITLE = "User Roadmap"
+BLOCKS = "blocks"
+QUESTIONS = "questions"
+TOPIC = "topic"
+QUESTION_ID = "question_id"
+STATUS = "status"
+ID = "id"
+medium = "medium"
+UNANSWERED = "unanswered"
+QUESTION_TEXT = "question_text"
+OPTIONS = "options"
+CORRECT_INDEX = "correct_index"
+IS_BOOKMARKED = "isBookmarked"
+DIFFICULTY = "difficulty"
+AVG_ROADMAP_DIFFICULTY = "avgRoadmapDifficulty"
+SUMMARY = "summary"
+PROGRESS_PERCENTAGE = "progressPercentage"
+IS_SAVED = "isSaved"
+difficulty_map={
+    "easy":1,
+    "medium":2,
+    "hard":3
+}
+score_difficulty_map = {
+    1: "Easy",
+    2: "Medium",
+    3: "Hard"
+}
+IS_EXPANDED = "isExpanded"
+LEARNING_OBJECTIVE = "learning_objective"
+BLOCK_NUMBER = "block_number"
+BLOCK_TITLE = "block_title"
+BLOCK_DESC = "block_description"
+ESTIMATED_TIME = "estimated_time"
+USER_PROFILE = "user_profile"
+SUBJECT = "subject"
+ADDITIONAL_COMMENTS = "additional_comments"
+QUESTIONS_DATA = "questions_data"
+SIMILARITY_SCORE = "similarity_score"
+TEXT = "text"
+SOURCE = "source"
+VECTOR_DB_URL = "VECTOR_DB_URL"
+VECTOR_DB_KEY = "VECTOR_DB_KEY"
+CEREBRAS_API_KEY = "CEREBRAS_API_KEY"
+DIFFICULTY_LEVEL = "difficulty_level"
+ESTIMATED_DURATION = "estimated_duration"
+LEARNING_TIPS = "learning_tips"
+TOTAL_BLOCKS = "total_blocks"
+
+
+
+
