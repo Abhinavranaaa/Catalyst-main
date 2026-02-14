@@ -3,6 +3,9 @@ from django.db import models
 from question.models import Question
 from users.models import User
 from django.contrib.postgres.fields import ArrayField
+from django.contrib.postgres.search import SearchVectorField
+from django.contrib.postgres.indexes import GinIndex
+from decimal import Decimal
 
 class Roadmap(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -12,6 +15,11 @@ class Roadmap(models.Model):
     topics = ArrayField(models.TextField(), blank=True,null=True) 
     description = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True, blank=True, null=True)
+    progress_percntg = models.DecimalField(
+        default=Decimal('0.00'), 
+        max_digits=6, 
+        decimal_places=2
+    )
     modified_at = models.DateTimeField(auto_now=True, blank=True, null=True)
     avg_difficulty = models.CharField(
         max_length=20,
@@ -23,11 +31,18 @@ class Roadmap(models.Model):
         ]
     )
     generated_json = models.JSONField(blank=True, null=True)
+    search_vector_en = SearchVectorField(null=True)
+    search_vector_smpl = SearchVectorField(null=True)
+
 
     class Meta:
         db_table = 'roadmaps'
         verbose_name = "Roadmap"
         verbose_name_plural = "Roadmaps"
+        indexes = [
+            GinIndex(fields=["search_vector_en"]),
+            GinIndex(fields=["search_vector_smpl"]),
+        ]
 
     def __str__(self):
         return self.title

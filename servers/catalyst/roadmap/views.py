@@ -13,6 +13,13 @@ import jwt
 from rest_framework.exceptions import AuthenticationFailed
 import time
 from catalyst import authenticate
+from .search.validator import QueryValidator
+from .search.parser import QueryParser
+from .search.query_builder import QueryBuilder
+from .search.sort import DynamicSortApplier
+from .search.filter import DynamicFilterApplier
+from .search.search import SearchDynamicQueries
+from .serializers import RoadmapSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +40,7 @@ def generate_roadmap_view(request):
         roadmap = response["raw"]
         roadmap_instance = save_roadmap_response(user_id, raw_roadmap_data=roadmap_formatted, raw_roadmap=roadmap,subject=validated_data.get("subject"),topic=validated_data.get("topic"),)
         roadmap_formatted[ROADMAP_ID] = roadmap_instance.id
-        comments = serializer.validated_data.get(ADDITIONAL_COMMENTS, '')
+        # comments = serializer.validated_data.get(ADDITIONAL_COMMENTS, '')
         end=time.time()
         logger.info(f"Total E2E latency: {end - start:.3f} seconds")
         return Response(
@@ -91,3 +98,54 @@ def getRoadmapJson(request):
             },
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+    
+@api_view(['POST'])
+def getListRoadmap(request):
+    user_id=authenticate(request)
+    payload = request.data or {}
+    try:
+        validator = QueryValidator()
+        parser = QueryParser()
+        validated_request = validator.validate(payload)
+        parsed_request = parser.parse(validated_request)
+        logger.info(f'request parsed into valid search sort filter limit and offset:{parsed_request.get("sort")},{parsed_request.get("filters")},{parsed_request.get("search")}')
+    except ValueError as e:
+        logger.warning("Query validation failed: %s", str(e))
+        return Response(
+            {"error": str(e)},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    try:
+        query_builder = QueryBuilder(dynamic_filter=DynamicFilterApplier(),sort=DynamicSortApplier(),search=SearchDynamicQueries())
+        qs = query_builder.build(user_id,parsed_request)
+        serializer = RoadmapSerializer(qs, many=True)
+        return Response({"response":serializer.data},status=status.HTTP_200_OK)
+    except Exception:
+        logger.exception("Internal server error during roadmap fetch")
+        return Response(
+            {
+                "error": "An unexpected error occurred while fetching the roadmap. Please try again later."
+            },
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )   
+
+
+    
+    
+
+    
+
+    
+
+
+    
+    
+
+    
+
+
+
+
+    
+
+

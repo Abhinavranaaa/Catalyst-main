@@ -23,9 +23,7 @@ def processAttempts(
     question_map = {rq.question.id: rq.question for rq in roadmap_questions}
     submitted_attempts = insertAttempts(user_id,roadmap,attempts,question_map)
     updateRoadmapQuestions(roadmap_questions=roadmap_questions,submitted_attempts=submitted_attempts)
-    updateRoadmapJson(roadmap)
     roadmap_attempts = fetchRoadmapAttempts(roadmap_id)
-
     engine = FactoryEngine([
     AccuracyMetric(),
     MeanTimeMetric(),
@@ -38,6 +36,7 @@ def processAttempts(
     question_lookup=question_map,
     )
     stats = engine.run(ctx)
+    updateRoadmapJson(roadmap,stats.get('roadmap_completion_pct',0.0))
     return stats
 
 
@@ -114,7 +113,8 @@ def updateRoadmapQuestions(roadmap_questions: list, submitted_attempts: list):
     return to_update
 
     
-def updateRoadmapJson(roadmap):
+def updateRoadmapJson(roadmap,completion_prcntg):
     updated_json = sync_roadmap_json_with_question_status(roadmap)
     roadmap.generated_json = updated_json
-    roadmap.save(update_fields=["generated_json"])
+    roadmap.progress_percntg = completion_prcntg
+    roadmap.save(update_fields=["generated_json","progress_percntg"])

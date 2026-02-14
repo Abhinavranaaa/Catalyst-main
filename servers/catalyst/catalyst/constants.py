@@ -326,6 +326,20 @@ DIFFICULTY_LEVEL = "difficulty_level"
 ESTIMATED_DURATION = "estimated_duration"
 LEARNING_TIPS = "learning_tips"
 TOTAL_BLOCKS = "total_blocks"
+ALLOWED_OPERATORS = {"eq", "in", "gte", "lte", "gt", "lt"}
+ALLOWED_SORT_ORDERS = {"asc", "desc"}
+
+SORT_FIELD_MAP = {
+    "created_at":"created_at",
+    "modified_at":"modified_at",
+    "progress_percntg":"progress_percntg"
+}
+
+FILTER_FIELD_MAP = {
+    "difficulty":"avg_difficulty",
+    "created_at":"created_at",
+    "modified_at":"modified_at"
+}
 
 
 
