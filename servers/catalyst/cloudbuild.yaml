@@ -5,13 +5,13 @@ steps:
       - '-f'
       - 'servers/catalyst/Dockerfile'
       - '-t'
-      - 'asia-south2-docker.pkg.dev/catalyst-be/catalyst-main/catalyst-main:$COMMIT_SHA'
+      - 'us-central1-docker.pkg.dev/catalyst-be/catalyst-main/catalyst-main:$COMMIT_SHA'
       - 'servers/catalyst'
 
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'push'
-      - 'asia-south2-docker.pkg.dev/catalyst-be/catalyst-main/catalyst-main:$COMMIT_SHA'
+      - 'us-central1-docker.pkg.dev/catalyst-be/catalyst-main/catalyst-main:$COMMIT_SHA'
 
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
@@ -19,8 +19,8 @@ steps:
       - run
       - deploy
       - catalyst-main
-      - --image=asia-south2-docker.pkg.dev/catalyst-be/catalyst-main/catalyst-main:$COMMIT_SHA
-      - --region=asia-south2
+      - --image=us-central1-docker.pkg.dev/catalyst-be/catalyst-main/catalyst-main:$COMMIT_SHA
+      - --region=us-central1
       - --platform=managed
       - --memory=2Gi
       - --cpu=2
@@ -30,7 +30,7 @@ steps:
       - --allow-unauthenticated
 
 images:
-  - 'asia-south2-docker.pkg.dev/catalyst-be/catalyst-main/catalyst-main:$COMMIT_SHA'
+  - 'us-central1-docker.pkg.dev/catalyst-be/catalyst-main/catalyst-main:$COMMIT_SHA'
 
 options:
   logging: CLOUD_LOGGING_ONLY
