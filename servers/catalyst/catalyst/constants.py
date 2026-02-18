@@ -1,9 +1,6 @@
 MAX_QUESTIONS_PER_ROADMAP = 30
 TRANSFORMERS_MODEL = "all-MiniLM-L6-v2"
 COLLECTION_NAME = "questions"
-LLM_MODEL = "qwen-3-32b"
-LLM_MODEL_NOTIFICATIONS = "llama-3.1-8b"
-LLM_MODEL_PROFILE = "llama-3.3-70b"
 QLOO_URL="https://hackathon.api.qloo.com/v2/insights"
 QLOO_URL_SEARCH="https://hackathon.api.qloo.com/search"
 QLOO_URL_TAGS="https://hackathon.api.qloo.com/v2/tags"
@@ -214,6 +211,124 @@ OUTPUT FORMAT
 ONLY output valid JSON. No prefix. No suffix.
 """
 
+PROMPT_TEMPLATE_V3 = """
+You are an expert education strategist and curriculum designer.
+
+Your sole task is to organize an existing question bank into a precise, personalized learning roadmap.
+You MUST NOT create, invent, rephrase, or synthesize any new questions.
+
+You must strictly follow all instructions and output ONLY valid JSON.
+
+====================
+USER PROFILE
+====================
+{user_profile}
+
+====================
+LEARNING CONTEXT
+====================
+Subject: {subject}
+Primary Topic: {topic}
+Additional Comments: {additional_comments}
+
+====================
+QUESTION BANK (SOURCE OF TRUTH)
+====================
+{questions_data}
+
+IMPORTANT:
+- You may ONLY use questions provided in the QUESTION BANK
+- Every question_id in the output MUST exist in the input
+- If a question is irrelevant, it must be DROPPED (not replaced)
+- You MUST evaluate ALL questions before constructing blocks
+- Question selection must be deterministic and rule-based, not preference-based
+
+====================
+TASK
+====================
+1. Personalization & Progression
+   - Analyze the user profile to identify strengths, gaps, and weak areas
+   - Refine the learning progression to:
+     - Start with foundational concepts
+     - Gradually move to applied and advanced concepts
+   - Adjust ordering and grouping to best fit the learner’s needs
+
+2. Question Filtering & Ordering
+   - Remove redundant or off-topic questions ONLY using the rules below
+   - Maintain a strict, continuous learning order:
+     - Earlier blocks enable later blocks
+     - No conceptual jumps or regressions
+   - Preserve original question wording and intent
+
+   STRICT QUESTION SELECTION RULES:
+   A question may be DROPPED ONLY if one or more of the following is true:
+   - The question topic does not belong to the requested subject or primary topic
+   - The question tests an identical concept already covered by an easier or clearer question
+   - The question difficulty creates a progression break (advanced before foundation)
+   - The question does not contribute to learning progression toward later blocks
+   - The question is unrelated to the learner’s weak areas AND does not support core foundations
+
+   DO NOT drop questions randomly.
+   DO NOT drop questions for brevity.
+   Prefer keeping questions unless a rule above explicitly applies.
+
+3. Learning Block Construction
+   - Create a dynamic number of blocks
+   - Block sizes and question counts may vary
+   - Each block must group questions that:
+     - Share the same core concept or micro-topic
+     - Build logically on each other
+   - Do NOT mix unrelated concepts in the same block
+
+4. Question Integrity (STRICT)
+   Each question MUST include:
+   - question_id (from input only)
+   - question_text (unchanged)
+   - topic (specific micro-topic)
+   - learning_objective (single, clear outcome)
+
+====================
+OUTPUT RULES (STRICT)
+====================
+- Output ONLY valid JSON
+- No markdown
+- No explanations
+- No comments
+- No trailing commas
+- No additional keys outside the schema
+- Maintain stable key ordering as shown below
+
+====================
+OUTPUT FORMAT
+====================
+{{
+  "roadmap_title": "Personalized Learning Path for {topic}",
+  "roadmap_description": "Two concise lines summarizing what the learner will master and how the roadmap progresses conceptually.",
+  "total_blocks": <integer>,
+  "estimated_duration": "<e.g. '2 hours'>",
+  "difficulty_level": "<beginner | intermediate | advanced | mixed>",
+  "blocks": [
+    {{
+      "block_number": 1,
+      "block_title": "Block title",
+      "block_description": "What this block covers and how it prepares the learner for the next block",
+      "estimated_time": "30 minutes",
+      "questions": [
+        {{
+          "question_id": "existing_question_id",
+          "question_text": "Exact question text from input",
+          "topic": "specific micro-topic",
+          "learning_objective": "Learner gains X"
+        }}
+      ]
+    }}
+  ],
+  "learning_tips": "1–2 short, practical and motivating tips"
+}}
+
+ONLY output valid JSON. No prefix. No suffix.
+
+"""
 PROMPT_TEMPLATE_V1 = """
         You are an expert education strategist and curriculum designer.
 
@@ -341,6 +456,13 @@ FILTER_FIELD_MAP = {
     "created_at":"created_at",
     "modified_at":"modified_at"
 }
+
+LLM_MODEL_ROADMAP = "LLM_MODEL_ROADMAP"
+LLM_MODEL_NOTIFICATIONS = "LLM_MODEL_NOTIFICATIONS"
+LLM_MODEL_PROFILE = "LLM_MODEL_PROFILE"
+GROK_API_KEY = "GROK_API_KEY"
+LLM_PROVIDER = "LLM_PROVIDER"
+GROK = "grok"
 
 
 

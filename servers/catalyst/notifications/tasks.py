@@ -12,7 +12,7 @@ from langchain import LLMChain
 from langchain_cerebras import ChatCerebras
 from langchain.prompts import PromptTemplate
 from django.conf import settings
-from catalyst.constants import NOTIFICATION_PROMPT_TEMPLATE, LLM_TEMP, MAX_TOKENS1, LLM_MODEL, PENDING, SENT, FAILED, DELIVERY_STATUS, LLM_MODEL_NOTIFICATIONS
+from catalyst.constants import NOTIFICATION_PROMPT_TEMPLATE, LLM_TEMP, MAX_TOKENS1, PENDING, SENT, FAILED, DELIVERY_STATUS, LLM_MODEL_NOTIFICATIONS
 import re
 from collections import Counter
 import nltk
@@ -31,6 +31,7 @@ if os.getenv("RENDER") != "true":
     load_dotenv(os.path.join(BASE_DIR, '.env'), override=True)
 
 CEREBRAS_API_KEY = os.getenv("CEREBRAS_API_KEY")
+LLM_MODEL_NOTIFICATIONS = os.getenv(LLM_MODEL_NOTIFICATIONS)
 
 if not CEREBRAS_API_KEY:
     raise Exception("CEREBRAS_API_KEY is missing. Please set it as an environment variable.")
@@ -84,7 +85,7 @@ def send_daily_notifications(self):
     distributor.register(PushObserver())
 
     llm = ChatCerebras(
-        model=LLM_MODEL,
+        model=LLM_MODEL_NOTIFICATIONS,
         api_key=CEREBRAS_API_KEY,
         temperature=LLM_TEMP,
         max_tokens=MAX_TOKENS1

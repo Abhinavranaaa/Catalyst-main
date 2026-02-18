@@ -21,7 +21,7 @@ BASE_DIR = os.path.abspath(os.path.join(CURRENT_DIR, '..','..'))
 if os.getenv("RENDER") != "true":
     load_dotenv(os.path.join(BASE_DIR, '.env'), override=True)
 CEREBRAS_API_KEY = os.getenv("CEREBRAS_API_KEY")
-
+LLM_MODEL_PROFILE = os.getenv(LLM_MODEL_PROFILE)
 llm = ChatCerebras(
         model=LLM_MODEL_PROFILE, 
         api_key=CEREBRAS_API_KEY,

@@ -5,9 +5,10 @@ from langchain.chains import LLMChain
 import json
 import logging
 from langchain_cerebras import ChatCerebras
+from langchain_openai import ChatOpenAI
 import os
 from dotenv import load_dotenv
-from catalyst.constants import MAX_QUESTIONS_PER_ROADMAP, COLLECTION_NAME, LLM_MODEL, MAX_TOKENS, LLM_TEMP2, ROADMAP_ID, PROMPT_TEMPLATE_V2
+from catalyst.constants import MAX_QUESTIONS_PER_ROADMAP, COLLECTION_NAME, LLM_MODEL_ROADMAP, MAX_TOKENS, LLM_TEMP2, ROADMAP_ID, PROMPT_TEMPLATE_V2, GROK_API_KEY,LLM_PROVIDER, GROK,PROMPT_TEMPLATE_V3
 from notifications.services import normalize_interest
 from qdrant_client import QdrantClient
 import torch
@@ -37,10 +38,23 @@ if os.getenv("RENDER") != "true":
 VECTOR_DB_URL = os.getenv("VECTOR_DB_URL")
 VECTOR_DB_KEY = os.getenv("VECTOR_DB_KEY")
 CEREBRAS_API_KEY = os.getenv("CEREBRAS_API_KEY")
+GROK_API_KEY = os.getenv(GROK_API_KEY)
+LLM_MODEL_ROADMAP = os.getenv(LLM_MODEL_ROADMAP)
 client = QdrantClient(url=VECTOR_DB_URL, api_key=VECTOR_DB_KEY)
 
-llm = ChatCerebras(
-        model_name=LLM_MODEL, 
+LLM_PROVIDER = os.getenv(LLM_PROVIDER, GROK)
+
+if LLM_PROVIDER == "grok":
+    llm = ChatOpenAI(
+        model=LLM_MODEL_ROADMAP,
+        api_key=GROK_API_KEY,
+        base_url="https://api.groq.com/openai/v1",
+        temperature=LLM_TEMP2,
+        max_tokens=MAX_TOKENS
+    )
+else:
+    llm = ChatCerebras(
+        model_name=LLM_MODEL_ROADMAP,
         api_key=CEREBRAS_API_KEY,
         temperature=LLM_TEMP2,
         max_tokens=MAX_TOKENS
@@ -213,7 +227,7 @@ def generate_roadmap_blocks(
     ]
 
     # Explicit prompt with clear instructions on using user profile for selection and grouping
-    template = PROMPT_TEMPLATE_V2
+    template = PROMPT_TEMPLATE_V3
     prompt = PromptTemplate.from_template(template)
 
     chain = LLMChain(llm=llm, prompt=prompt)
@@ -299,13 +313,11 @@ def parse_llm_response_to_json(response: Union[str, dict], debug_log: Optional[c
 
     cleaned = response.strip()
 
-    # Remove common preamble lines (e.g., "Here is the JSON:")
     cleaned = re.sub(r"^.*?\{", "{", cleaned, flags=re.DOTALL)
 
-    # Remove markdown code fences
+
     cleaned = re.sub(r"```(?:json)?", "", cleaned).strip()
     
-    # Ensure we're starting with a JSON object
     first_json_brace = cleaned.find("{")
     if first_json_brace > 0:
         cleaned = cleaned[first_json_brace:]
