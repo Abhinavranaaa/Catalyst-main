@@ -300,7 +300,7 @@ class SubscribeView(APIView):
         subscriber = Subscriber.objects.create(email=email)
 
         email_observer = EmailObserver()
-        domain_url = 'https://django-web-109334363006.asia-south2.run.app' 
+        domain_url = 'https://catalyst-main-1036749949194.us-central1.run.app' 
 
         email_observer.send(
             user=subscriber,  

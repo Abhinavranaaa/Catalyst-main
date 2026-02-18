@@ -23,7 +23,7 @@ class EmailObserver(NotificationObserver):
     def send(self, user, message, **kwargs):
         subject = "Your New Learning Notification"
 
-        domain_url = kwargs.get('domain_url', 'https://catalyst-main-1036749949194.asia-south2.run.app')
+        domain_url = kwargs.get('domain_url', 'https://catalyst-main-1036749949194.us-central1.run.app')
         user_name = getattr(user, 'name', None) or getattr(user, 'user_name', None) or user.email
         html_content = render_to_string('email/notification.html', {
             'subject': subject,
