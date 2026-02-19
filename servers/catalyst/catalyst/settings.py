@@ -121,10 +121,10 @@ DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
         "NAME": "postgres",
-        "USER": "postgres.ahadzhvmsfefuuyuhixv",
-        "PASSWORD": "1jU7TKr602okVSSa",
+        "USER": "postgres.qbenybbdxqeaciygkxup",
+        "PASSWORD": "Catalyst@1234#",
         "PORT": "6543",
-        "HOST": "aws-0-ap-south-1.pooler.supabase.com",
+        "HOST": "aws-1-us-east-1.pooler.supabase.com",
         'OPTIONS': {
             'options': '-c statement_timeout=10000',
             'connect_timeout': 10,
