@@ -44,7 +44,8 @@ ALLOWED_HOSTS = [
     'django-web-109334363006.asia-south2.run.app',
     'catalyst-main-109334363006.asia-south2.run.app',
     'catalyst-main-1036749949194.asia-south2.run.app',
-    'catalyst-main-1036749949194.us-central1.run.app'
+    'catalyst-main-1036749949194.us-central1.run.app',
+    'api.catalystedutech.com'
 ]
 
 STATIC_URL = '/static/'
@@ -77,6 +78,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'catalyst.middleware.CloudflareShieldMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.middleware.common.CommonMiddleware',
