@@ -6,18 +6,27 @@ import os
 from dotenv import load_dotenv
 from google.cloud import tasks_v2
 import json
-from notifications.publisher import loadQueueAndPublish
 from datetime import datetime, timedelta
 from google.protobuf import timestamp_pb2
+import os
+from dotenv import load_dotenv
+from catalyst.constants import US_CENTRAL1, NOTIFICATION_QUEUE, PROJECT_ID
+from catalyst.publisher import Publisher
 
-# to do configure the retry behaviour 
+
 logger = logging.getLogger(__name__)
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 BASE_DIR = os.path.abspath(os.path.join(CURRENT_DIR, '..','..'))
+QUEUE_REGION = os.getenv(US_CENTRAL1)
+QUEUE_ID = os.getenv(NOTIFICATION_QUEUE)
+PROJECT_ID = os.getenv(PROJECT_ID)
+
 def batchProcess(request):
+
+    publish = Publisher(QUEUE_REGION,QUEUE_ID,PROJECT_ID)
+
     logger.info("triggering notification batch")
     batches = iter_user_ids(BATCH_SIZE)
-
     target_url = os.getenv(PROCESS_URL)
     sa_email = os.getenv(SA_EMAIL)
 
@@ -55,7 +64,7 @@ def batchProcess(request):
         }
 
         try:
-            loadQueueAndPublish(task)
+            publish.loadQueueAndPublish(task)
             successful_batches += 1
         except Exception as e:
             failed_batches += 1

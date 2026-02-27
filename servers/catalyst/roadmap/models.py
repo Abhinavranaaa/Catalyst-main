@@ -66,3 +66,29 @@ class RoadmapQuestion(models.Model):
         managed = True
 
 
+class RoadmapJob(models.Model):
+
+    class Status(models.TextChoices):
+        QUEUED = "queued"
+        PROCESSING = "processing"
+        COMPLETED = "completed"
+        FAILED = "failed"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    input_data = models.JSONField()
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.QUEUED
+    )
+    error_message = models.TextField(null=True, blank=True)
+    roadmap = models.ForeignKey(Roadmap, on_delete=models.CASCADE,null=True,blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["user", "status"]),
+        ]

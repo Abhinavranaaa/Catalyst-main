@@ -464,6 +464,39 @@ GROK_API_KEY = "GROK_API_KEY"
 LLM_PROVIDER = "LLM_PROVIDER"
 GROK = "grok"
 
+SLIDING_WINDOW_LUA = """
+local key = KEYS[1]
+local limit = tonumber(ARGV[1])
+local window = tonumber(ARGV[2])
+local now = tonumber(ARGV[3])
+local member = ARGV[4]
+
+local window_start = now - window
+
+-- Remove expired entries
+redis.call("ZREMRANGEBYSCORE", key, 0, window_start)
+
+-- Count current entries
+local current = redis.call("ZCARD", key)
+
+if current >= limit then
+    return {0, current}
+end
+
+-- Add new request
+redis.call("ZADD", key, now, member)
+
+-- Ensure key expires eventually
+redis.call("EXPIRE", key, window + 60)
+
+return {1, current + 1}
+"""
+
+ROADMAP_QUEUE = 'ROADMAP_QUEUE'
+ROADMAP_PROCESS_URL = 'ROADMAP_PROCESS_URL'
+MAX_ROADMAPS_PER_WINDOW = 2
+WINDOW = 86400
+
 
 
 

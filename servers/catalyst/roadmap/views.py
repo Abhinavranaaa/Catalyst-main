@@ -4,8 +4,8 @@ from django.shortcuts import render
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
-from roadmap.service.generate import generate_roadmap,reshape_roadmap_for_response,save_roadmap_response,fetchRoadmapJson
-from roadmap.serializers import GenerateRoadmapRequestSerializer, GetRoadmapRequestSerializer
+from roadmap.service.generate import generate_roadmap_json,fetchRoadmapJson,fetchRoadmapJob
+from roadmap.serializers import GenerateRoadmapRequestSerializer, GetRoadmapRequestSerializer, GetJobRequestSerializer
 import logging
 from notifications.tasks import process_user_interests_async
 from catalyst.constants import ADDITIONAL_COMMENTS, ROADMAP_ID
@@ -20,60 +20,17 @@ from .search.sort import DynamicSortApplier
 from .search.filter import DynamicFilterApplier
 from .search.search import SearchDynamicQueries
 from .serializers import RoadmapSerializer
+from .service.jobService import RoadmapJobService
+import json
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.db import transaction
+from roadmap.models import RoadmapJob
+from catalyst.rate_limit.RateLimitExceeded import RateLimitExceeded
+
 
 logger = logging.getLogger(__name__)
 
-@api_view(['POST'])
-# @permission_classes([IsAuthenticated])
-def generate_roadmap_view(request):
-
-    user_id=authenticate(request)
-    serializer = GenerateRoadmapRequestSerializer(data=request.data)
-    if not serializer.is_valid():
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    try:
-        start=time.time()
-        validated_data = serializer.validated_data
-        response = generate_roadmap(user_id=user_id, **validated_data)
-        roadmap_formatted = response["formatted"]
-        roadmap = response["raw"]
-        roadmap_instance = save_roadmap_response(user_id, raw_roadmap_data=roadmap_formatted, raw_roadmap=roadmap,subject=validated_data.get("subject"),topic=validated_data.get("topic"),)
-        roadmap_formatted[ROADMAP_ID] = roadmap_instance.id
-        # comments = serializer.validated_data.get(ADDITIONAL_COMMENTS, '')
-        end=time.time()
-        logger.info(f"Total E2E latency: {end - start:.3f} seconds")
-        return Response(
-            {
-                "message": "Roadmap generated successfully",
-                "data": roadmap_formatted
-            },
-            status=status.HTTP_201_CREATED
-        )
-        
-    except KeyError as e:
-        logger.error("Roadmap response missing key: %s", e)
-        return Response(
-            {"message": "Invalid roadmap response"},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
-
-    except ValueError as ve:
-        logger.warning(f"Business validation error: {ve}")
-        return Response(
-            {"error": str(ve)},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-
-    except Exception as e:
-        logger.exception("Internal server error during roadmap generation")
-        return Response(
-            {
-                "error": "An unexpected error occurred while generating the roadmap. Please try again later."
-            },
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
-    
 @api_view(['GET'])
 def getRoadmapJson(request):
     user_id=authenticate(request)
@@ -129,6 +86,91 @@ def getListRoadmap(request):
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )   
 
+
+@api_view(['POST'])
+def generate_roadmap_view(request):
+
+    user_id=authenticate(request)
+    serializer = GenerateRoadmapRequestSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        service = RoadmapJobService()
+        job = service.create_and_enqueue(
+            user_id=user_id,
+            input_data=serializer.validated_data,
+        )
+        return Response({
+            "job_id": str(job.id),
+            "status": job.status
+        })
+    except Exception as e:
+        return Response(
+            {
+                "error": f"An unexpected error occurred while fetching the roadmap. Please try again later.{e}"
+            },
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+    
+
+@api_view(['POST'])
+@csrf_exempt
+def process_roadmap_task(request):
+
+    data = json.loads(request.body)
+    job_id = data["job_id"]
+    try:
+        with transaction.atomic():
+
+            job = RoadmapJob.objects.select_for_update().get(id=job_id)
+            if job.status == RoadmapJob.Status.COMPLETED:
+                return JsonResponse({"status": "already_completed"})
+
+            job.status = RoadmapJob.Status.PROCESSING
+            job.save(update_fields=["status"])
+        
+        roadmap = generate_roadmap_json(job.user_id,**job.input_data)
+        job.roadmap = roadmap
+        job.status = RoadmapJob.Status.COMPLETED
+        job.save(update_fields=["status","roadmap"])
+        return JsonResponse({"status": "success"})
+    
+    except KeyError as e:
+        logger.error("Roadmap response missing key: %s", e)
+        raise e
+    
+    except RateLimitExceeded as e:
+        job.status = RoadmapJob.Status.FAILED
+        job.error_message = str(e)
+        job.save(update_fields=["status", "error_message"])
+        return JsonResponse({"status": "success"})
+
+    except Exception as e:
+        job.status = RoadmapJob.Status.FAILED
+        job.error_message = str(e)
+        job.save(update_fields=["status", "error_message"])
+        raise e  
+
+
+@api_view(['GET'])
+def pollRoadmap(request):
+    user_id=authenticate(request)
+    serializer = GetJobRequestSerializer(data=request.query_params)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        roadmapJob =fetchRoadmapJob(user_id,**serializer.validated_data)
+        logger.info("successfully fetched the roadmap job and processing the response")
+        return Response(
+            roadmapJob,
+            status=status.HTTP_200_OK
+        )
+    except RoadmapJob.DoesNotExist:
+        return Response(
+            {"error": "Job not found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
 
     
     

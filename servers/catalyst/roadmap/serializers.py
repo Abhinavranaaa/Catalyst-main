@@ -10,6 +10,8 @@ class GenerateRoadmapRequestSerializer(serializers.Serializer):
 class GetRoadmapRequestSerializer(serializers.Serializer):
     roadmap_id = serializers.CharField(max_length=255)
 
+class GetJobRequestSerializer(serializers.Serializer):
+    job_id = serializers.CharField(max_length=255)
 # roadmap/api/serializers.py
 
 class RoadmapSerializer(serializers.ModelSerializer):

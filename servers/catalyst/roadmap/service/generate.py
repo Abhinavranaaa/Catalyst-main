@@ -2,13 +2,14 @@ from .profileSynthesis import fetchUsrProfile
 from typing import Dict, Any, List, Optional
 from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
+from langchain.schema import HumanMessage
 import json
 import logging
 from langchain_cerebras import ChatCerebras
 from langchain_openai import ChatOpenAI
 import os
 from dotenv import load_dotenv
-from catalyst.constants import MAX_QUESTIONS_PER_ROADMAP, COLLECTION_NAME, LLM_MODEL_ROADMAP, MAX_TOKENS, LLM_TEMP2, ROADMAP_ID, PROMPT_TEMPLATE_V2, GROK_API_KEY,LLM_PROVIDER, GROK,PROMPT_TEMPLATE_V3
+from catalyst.constants import MAX_QUESTIONS_PER_ROADMAP, COLLECTION_NAME, LLM_MODEL_ROADMAP, MAX_TOKENS, LLM_TEMP2, ROADMAP_ID, PROMPT_TEMPLATE_V2, GROK_API_KEY,LLM_PROVIDER, GROK,PROMPT_TEMPLATE_V3, MAX_ROADMAPS_PER_WINDOW, WINDOW
 from notifications.services import normalize_interest
 from qdrant_client import QdrantClient
 import torch
@@ -19,12 +20,13 @@ from typing import Optional, Union
 import re
 from typing import Dict
 from django.db import transaction
-from roadmap.models import Roadmap, RoadmapQuestion, Question
+from roadmap.models import Roadmap, RoadmapQuestion, Question, RoadmapJob
 from catalyst.utils import remove_think_blocks 
 import uuid
 import time
-from practice.helper import fetchRoadmap
+from practice.helper import fetchRoadmap,fetchJob
 from django.core.exceptions import ValidationError
+from catalyst.rate_limit.services import SlidingWindowRateLimitter
 
 
 
@@ -66,6 +68,19 @@ if not VECTOR_DB_URL or not VECTOR_DB_KEY or not CEREBRAS_API_KEY:
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
+
+def generate_roadmap_json(user_id: str, subject: str, topic: str, additional_comments: str = None)->dict:
+    limiter = SlidingWindowRateLimitter(MAX_ROADMAPS_PER_WINDOW,WINDOW)
+    limiter.check(user_id)
+    response = generate_roadmap(user_id,subject,topic,additional_comments)
+    roadmap_formatted = response["formatted"]
+    roadmap = response["raw"]
+    roadmap_instance = save_roadmap_response(user_id, raw_roadmap_data=roadmap_formatted, raw_roadmap=roadmap,subject=subject,topic=topic)
+    roadmap_formatted[ROADMAP_ID] = roadmap_instance.id
+    return roadmap_instance
+
+
+        
 
 def generate_roadmap(user_id: str, subject: str, topic: str, additional_comments: str = None) -> dict:
     """
@@ -230,25 +245,47 @@ def generate_roadmap_blocks(
     template = PROMPT_TEMPLATE_V3
     prompt = PromptTemplate.from_template(template)
 
-    chain = LLMChain(llm=llm, prompt=prompt)
     try:
-        start=time.time()
-        response = chain.run({
-            "user_profile": user_profile,
-            "subject": subject,
-            "topic": topic,
-            "additional_comments": additional_comments or "None",
-            "questions_data": json.dumps(questions_summary, indent=2)
-        })
-        end=time.time()
-        # logger.info("LLM summary generated for roadmap: %s", response)
-        logger.info(f"Cerebras LLM latency roadmap: {end - start:.3f} seconds")
-        response_text = response if isinstance(response, str) else str(response)
+        formatted_prompt = prompt.format(
+            user_profile=user_profile,
+            subject=subject,
+            topic=topic,
+            additional_comments=additional_comments or "None",
+            questions_data=json.dumps(questions_summary, indent=2)
+        )
+
+        start = time.time()
+
+        response = llm.invoke([
+            HumanMessage(content=formatted_prompt)
+        ])
+
+        end = time.time()
+        latency = end - start
+
+        response_text = response.content
+
+        # ✅ Proper token extraction
+        usage = response.response_metadata.get("token_usage", {})
+
+        prompt_tokens = usage.get("prompt_tokens", 0)
+        completion_tokens = usage.get("completion_tokens", 0)
+        total_tokens = usage.get("total_tokens", 0)
+
+        logger.info(
+            f"LLM | model={LLM_MODEL_ROADMAP} | "
+            f"prompt={prompt_tokens} | "
+            f"completion={completion_tokens} | "
+            f"total={total_tokens} | "
+            f"latency={latency:.3f}s"
+        )
+
         roadmap = parse_llm_response_to_json(response_text, debug_log=logger.debug)
+
         if not roadmap:
-            logger.error(" Roadmap output could not be parsed even after fallback.")
+            logger.error("Roadmap output could not be parsed even after fallback.")
             return create_fallback_roadmap(questions)
-        
+
         return roadmap
 
     except Exception as e:
@@ -509,6 +546,26 @@ def fetchRoadmapJson(roadmap_id: str) -> Dict:
     result = roadmap.generated_json
     result[ROADMAP_ID] = str(roadmap_uuid)
     return result
+
+def fetchRoadmapJob(user_id:str,job_id:str)->dict:
+    try:
+        job_uuid = uuid.UUID(job_id)
+    except (ValueError, TypeError):
+        raise ValidationError(f"Invalid roadmap_id: {job_id}")
+    
+    job = fetchJob(job_uuid,user_id)
+    if not job.roadmap:
+        return {"status":job.status,"error_msg":job.error_message}
+    else:
+        result = dict(job.roadmap.generated_json)
+        result[ROADMAP_ID] = str(job.roadmap.id)
+        return {"status":job.status,"result":result,"error_msg":job.error_message}
+        
+    
+    
+
+    
+    
     
     
 def extract_unique_topics(raw_roadmap: dict, topic: str) -> list[str]:
