@@ -1,6 +1,8 @@
 from roadmap.models import RoadmapQuestion,Roadmap, RoadmapJob
 from ..models import Answer
 import logging
+from django.utils import timezone
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -42,4 +44,15 @@ def fetchJob(job_id,user_id):
     except Exception as e:
         logger.exception("Exception e: %s, occured while fetching from db",e)
         raise
+
+def fetchDailyQuota(user_id):
+    now = timezone.now()
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    used = RoadmapJob.objects.select_for_update().filter(
+        user_id=user_id,
+        created_at__gte=today_start
+    ).exclude(status=RoadmapJob.Status.FAILED).count()
+    return used
+
+
 

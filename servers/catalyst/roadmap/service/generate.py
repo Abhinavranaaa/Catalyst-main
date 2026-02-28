@@ -70,8 +70,8 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 def generate_roadmap_json(user_id: str, subject: str, topic: str, additional_comments: str = None)->dict:
-    limiter = SlidingWindowRateLimitter(MAX_ROADMAPS_PER_WINDOW,WINDOW)
-    limiter.check(user_id)
+    # limiter = SlidingWindowRateLimitter(MAX_ROADMAPS_PER_WINDOW,WINDOW)
+    # limiter.check(user_id)
     response = generate_roadmap(user_id,subject,topic,additional_comments)
     roadmap_formatted = response["formatted"]
     roadmap = response["raw"]
@@ -601,5 +601,7 @@ def normalize_difficulty(difficulty: str) -> str:
 
 
 
+# fox that error
+# count only successful attempts
 
 

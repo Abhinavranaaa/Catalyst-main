@@ -97,14 +97,22 @@ def generate_roadmap_view(request):
     
     try:
         service = RoadmapJobService()
-        job = service.create_and_enqueue(
+        job = service.create(
             user_id=user_id,
             input_data=serializer.validated_data,
         )
-        return Response({
-            "job_id": str(job.id),
-            "status": job.status
-        })
+        if job:
+            return Response({
+                "job_id": str(job.id),
+                "status": job.status
+            })
+        else:
+            return Response({
+                "error_msg":"individual rate limit breached comeback next day"
+            }, status = status.HTTP_403_FORBIDDEN)
+        
+
+        
     except Exception as e:
         return Response(
             {
@@ -129,7 +137,7 @@ def process_roadmap_task(request):
 
             job.status = RoadmapJob.Status.PROCESSING
             job.save(update_fields=["status"])
-        
+    
         roadmap = generate_roadmap_json(job.user_id,**job.input_data)
         job.roadmap = roadmap
         job.status = RoadmapJob.Status.COMPLETED
