@@ -90,6 +90,32 @@ class UserProfile( models.Model):
     modified_at = models.DateTimeField(auto_now=True, blank=True, null=True)
     objects = UserProfileManager()
     
+class UserStats(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True)
+    total_attempted = models.IntegerField(default=0)
+    total_time_spent_seconds = models.IntegerField(default=0)
+    easy_correct = models.IntegerField(default=0)
+    medium_correct = models.IntegerField(default=0)
+    hard_correct = models.IntegerField(default=0)
+    current_streak = models.IntegerField(default=0)
+    max_streak = models.IntegerField(default=0)
+    last_activity_date = models.DateField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+
+class UserDailyActivity(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    date = models.DateField()
+
+    total_attempted = models.IntegerField(default=0)
+    total_correct = models.IntegerField(default=0)
+    time_spent_seconds = models.IntegerField(default=0)
+
+    class Meta:
+        unique_together = ("user", "date")
+        indexes = [
+            models.Index(fields=["user", "date"]),
+        ]
 
 class Subscriber(models.Model):
     email = models.EmailField(unique=True)

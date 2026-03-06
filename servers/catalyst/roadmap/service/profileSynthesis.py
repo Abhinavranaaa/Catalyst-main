@@ -11,9 +11,7 @@ from dotenv import load_dotenv
 from catalyst.constants import LLM_MODEL_PROFILE, MAX_TOKENS1, LLM_TEMP1, PROFILE_TEMPLATE_2
 from catalyst.utils import remove_think_blocks 
 import time
-from upstash_redis import Redis
-
-redis = Redis.from_env()
+from catalyst.infra.redis import redis_client
 logger = logging.getLogger(__name__)
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -31,11 +29,11 @@ llm = ChatCerebras(
 
 def fetchUsrProfile(user_id: str) -> str:
     key= f"user_profile:{user_id}"
-    cached=redis.get(key)
+    cached=redis_client.get(key)
     if cached:
         return cached
     profile = buildUserProfile(user_id)
-    redis.set(key,profile['summary'],ex=86400)
+    redis_client.set(key,profile['summary'],ex=86400)
     return profile['summary']
 
 

@@ -14,15 +14,19 @@ from .serializers import (
     ChangePasswordSerializer
 )
 from rest_framework.decorators import api_view
-from catalyst.constants import CATALYST_EMAIL
+from catalyst.constants import CATALYST_EMAIL,WINDOW
 from notifications.observer import EmailObserver
 from .serializers import SerializeUserInfo
 import logging
 from users.signals.createProfile import saveAndProcessUser
 from catalyst import authenticate
+from .service.dashboardRead import DashBoardReadService,DashBoardCacheService,DashboardBuilder
 
-
+# initialisation
 logger = logging.getLogger(__name__)
+cache_service = DashBoardCacheService(WINDOW)
+builder = DashboardBuilder()
+dashboard_service = DashBoardReadService(cache_service, builder)
 
 # Create your views here.
 class RegisterView(APIView):
@@ -318,5 +322,23 @@ def triggerOnboarding(request):
     response = saveAndProcessUser(user_id,**serializer.validated_data)
     logger.info("save user info response: %s", response)
     return Response({"message": "Onboarded successfully"}, status=status.HTTP_201_CREATED)
+
+
+@api_view(['GET'])
+def getDashboard(request):
+    user_id = authenticate(request)
+    try:
+        response = dashboard_service.render(user_id)
+        return Response({"message": "rendered successfully","result":response}, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        return Response(
+            {
+                "error": f"An unexpected error occurred while fetching the dashboard. Please try again later.{e}"
+            },
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+    
+
 
 

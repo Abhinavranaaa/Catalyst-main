@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.urls import path
 from . import views
-from users.views import triggerOnboarding
+from users.views import triggerOnboarding,getDashboard
 
 urlpatterns = [
     path("register", views.RegisterView.as_view(), name="register"),
@@ -18,5 +18,6 @@ urlpatterns = [
     path("profile/stats", views.ProfileStatsView.as_view(), name="profile-stats"),
     path("user/change-password", views.ChangePasswordView.as_view(), name="change-password"),
     path("profile/onboard", triggerOnboarding, name="onboarding-user"),
+    path("user/dashboard",getDashboard, name='dashboard')
 ]
 

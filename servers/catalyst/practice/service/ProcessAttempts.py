@@ -8,10 +8,21 @@ from ..metrics import *
 from users.models import User
 from roadmap.models import Roadmap, RoadmapQuestion
 from roadmap.service.generate import sync_roadmap_json_with_question_status
-
+from users.analytics.analyticsOrchestrator import AnalyticsCoordinator
+from users.analytics.analyticsUserStats import AnalyticsUpdaterUserStats
+from users.analytics.analyticsDailyActivity import DailyStatsUpdater
+from users.service.dashboarCacheService import DashBoardCacheService
+from catalyst.constants import WINDOW
 
 
 logger = logging.getLogger(__name__)
+analytics = AnalyticsCoordinator([AnalyticsUpdaterUserStats(),DailyStatsUpdater()],DashBoardCacheService(WINDOW))
+engine = FactoryEngine([
+    AccuracyMetric(),
+    MeanTimeMetric(),
+    RoadmapCompletionMetric(),
+    QuestionBreakdownMetric(),
+    ])
 
 def processAttempts(
     user_id:str,
@@ -21,15 +32,14 @@ def processAttempts(
     roadmap = fetchRoadmap(roadmap_id=roadmap_id)
     roadmap_questions = fetchRoadmapQuestions(roadmap_id)
     question_map = {rq.question.id: rq.question for rq in roadmap_questions}
-    submitted_attempts = insertAttempts(user_id,roadmap,attempts,question_map)
-    updateRoadmapQuestions(roadmap_questions=roadmap_questions,submitted_attempts=submitted_attempts)
+
+    with transaction.atomic():
+        submitted_attempts = insertAttempts(user_id,roadmap,attempts,question_map)
+        updateRoadmapQuestions(roadmap_questions=roadmap_questions,submitted_attempts=submitted_attempts)
+        analytics.process_attempt(user_id,submitted_attempts)
+
+    
     roadmap_attempts = fetchRoadmapAttempts(roadmap_id)
-    engine = FactoryEngine([
-    AccuracyMetric(),
-    MeanTimeMetric(),
-    RoadmapCompletionMetric(),
-    QuestionBreakdownMetric(),
-    ])
     ctx = StatsContext(
     submitted_attempts=submitted_attempts,
     all_attempts=roadmap_attempts,
@@ -38,7 +48,6 @@ def processAttempts(
     stats = engine.run(ctx)
     updateRoadmapJson(roadmap,stats.get('roadmap_completion_pct',0.0))
     return stats
-
 
 
 def insertAttempts(
@@ -58,7 +67,6 @@ def insertAttempts(
     for attempt in attempts:
         question_id = attempt["question_id"]
         selected_index = attempt["selected_index"]
-        answered_at = attempt.get("answered_at") or now
         time_taken = attempt.get("time_taken_seconds")
         question = question_map.get(question_id)
         if not question:
@@ -80,7 +88,6 @@ def insertAttempts(
                 question=question,
                 selected_index=selected_index,
                 is_correct=is_correct,
-                answered_at=answered_at,
                 time_taken_seconds=time_taken,
             )
         )

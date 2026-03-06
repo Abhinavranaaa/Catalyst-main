@@ -2,7 +2,8 @@ from roadmap.models import RoadmapQuestion,Roadmap, RoadmapJob
 from ..models import Answer
 import logging
 from django.utils import timezone
-from datetime import datetime
+from datetime import datetime,timedelta
+from users.models import UserDailyActivity,UserStats
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +54,19 @@ def fetchDailyQuota(user_id):
         created_at__gte=today_start
     ).exclude(status=RoadmapJob.Status.FAILED).count()
     return used
+
+
+def fetch_user_stats(user_id):
+    return UserStats.objects.get(user_id=user_id)
+
+def fetch_daily_activity(user_id, days=30):
+    today = timezone.now().date()
+    start_date = today - timedelta(days=days)
+
+    return UserDailyActivity.objects.filter(
+        user_id=user_id,
+        date__gte=start_date
+    ).order_by("date")
 
 
 

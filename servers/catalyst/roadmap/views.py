@@ -30,6 +30,10 @@ from catalyst.rate_limit.RateLimitExceeded import RateLimitExceeded
 
 
 logger = logging.getLogger(__name__)
+service = RoadmapJobService()
+query_builder = QueryBuilder(dynamic_filter=DynamicFilterApplier(),sort=DynamicSortApplier(),search=SearchDynamicQueries())
+validator = QueryValidator()
+parser = QueryParser()
 
 @api_view(['GET'])
 def getRoadmapJson(request):
@@ -61,8 +65,6 @@ def getListRoadmap(request):
     user_id=authenticate(request)
     payload = request.data or {}
     try:
-        validator = QueryValidator()
-        parser = QueryParser()
         validated_request = validator.validate(payload)
         parsed_request = parser.parse(validated_request)
         logger.info(f'request parsed into valid search sort filter limit and offset:{parsed_request.get("sort")},{parsed_request.get("filters")},{parsed_request.get("search")}')
@@ -73,7 +75,6 @@ def getListRoadmap(request):
             status=status.HTTP_400_BAD_REQUEST
         )
     try:
-        query_builder = QueryBuilder(dynamic_filter=DynamicFilterApplier(),sort=DynamicSortApplier(),search=SearchDynamicQueries())
         qs = query_builder.build(user_id,parsed_request)
         serializer = RoadmapSerializer(qs, many=True)
         return Response({"response":serializer.data},status=status.HTTP_200_OK)
@@ -96,7 +97,6 @@ def generate_roadmap_view(request):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     try:
-        service = RoadmapJobService()
         job = service.create(
             user_id=user_id,
             input_data=serializer.validated_data,

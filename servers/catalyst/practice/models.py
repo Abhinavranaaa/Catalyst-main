@@ -13,7 +13,7 @@ class Answer(models.Model):
     question = models.ForeignKey(Question, on_delete=models.DO_NOTHING, blank=True, null=True)
     selected_index = models.IntegerField()
     is_correct = models.BooleanField(blank=True, null=True)
-    answered_at = models.DateTimeField(auto_now_add=True, blank=True, null=True)
+    answered_at = models.DateTimeField(auto_now_add=True)
     time_taken_seconds = models.IntegerField(blank=True, null=True)
 
     class Meta:
