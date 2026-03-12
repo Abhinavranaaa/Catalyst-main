@@ -57,7 +57,10 @@ def fetchDailyQuota(user_id):
 
 
 def fetch_user_stats(user_id):
-    return UserStats.objects.get(user_id=user_id)
+    try:
+        return UserStats.objects.get(user_id=user_id)
+    except UserStats.DoesNotExist:
+        return None 
 
 def fetch_daily_activity(user_id, days=30):
     today = timezone.now().date()

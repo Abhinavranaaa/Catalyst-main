@@ -4,7 +4,9 @@ from datetime import timedelta
 class DashboardBuilder:
 
     def build(self, stats, daily_rows):
-
+        if stats == None:
+            return {}
+        
         total_attempted = stats.total_attempted
         total_correct = stats.easy_correct+stats.medium_correct+stats.hard_correct
 
