@@ -390,7 +390,7 @@ def google_callback(request):
             logger.error("Missing OAuth state in session")
             return redirect(settings.FRONTEND_LOGIN_FAILED)
         
-        # os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
+        os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
 
         flow = Flow.from_client_config(
             settings.GOOGLE_OAUTH_CONFIG,
@@ -439,6 +439,7 @@ def google_callback(request):
 
         try:
             token = create_jwt(user_id)
+            print(token)
         except Exception:
             logger.exception("JWT generation failed")
             return redirect(settings.FRONTEND_LOGIN_FAILED)
@@ -451,7 +452,7 @@ def google_callback(request):
             token,
             httponly=True,
             secure=True,
-            samesite="Lax",
+            samesite=None,
             max_age=settings.JWT_EXP_SECONDS
         )
 
@@ -470,4 +471,11 @@ def user_init(email:str,name:str):
             auth_provider="GOOGLE"
         )
     return user.id
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def me(request):
+    return Response({
+        "user_id": request.user.id
+    })
     
