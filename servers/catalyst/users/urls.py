@@ -20,7 +20,7 @@ urlpatterns = [
     path("profile/onboard", triggerOnboarding, name="onboarding-user"),
     path("user/dashboard",getDashboard, name='dashboard'),
     path("user/google/auth",google_login, name='google_login'),
-    path("auth/google/callback",google_callback, name='google_callback'),
+    path("user/google/callback",google_callback, name='google_callback'),
     path("me",me, name='verify_session')
 
 ]
