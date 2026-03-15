@@ -171,7 +171,7 @@ AUTH_USER_MODEL = "users.User"
 CORS_ORIGIN_ALLOW_ALL = False
 CORS_ALLOWED_ORIGINS = [
     "https://catalyst-roadmap.vercel.app",
-    "localhost:4200"
+    "http://localhost:4200"
 ]
 CORS_ALLOW_CREDENTIALS = True
 # change here later on
