@@ -9,7 +9,6 @@ import jwt
 from .serializers import PostUsrAttemptSerializer
 from .service import processAttempts
 import time
-from catalyst import authenticate
 
 # Create your views here.
 # remember how the importing work in django and the order of imports
@@ -19,13 +18,12 @@ logger = logging.getLogger(__name__)
 
 @api_view(['POST'])
 def postUserAttempt(request):
-    user_id=authenticate(request)
     serializer = PostUsrAttemptSerializer(data=request.data)
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     try:
         start=time.time()
-        report = processAttempts(user_id=user_id, **serializer.validated_data)
+        report = processAttempts(user_id=request.user.id, **serializer.validated_data)
         end=time.time()
         logger.info(f"Total E2E latency: {end - start:.3f} seconds")
         return Response(

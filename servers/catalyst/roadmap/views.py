@@ -12,7 +12,6 @@ from catalyst.constants import ADDITIONAL_COMMENTS, ROADMAP_ID
 import jwt
 from rest_framework.exceptions import AuthenticationFailed
 import time
-from catalyst import authenticate
 from .search.validator import QueryValidator
 from .search.parser import QueryParser
 from .search.query_builder import QueryBuilder
@@ -27,6 +26,10 @@ from django.views.decorators.csrf import csrf_exempt
 from django.db import transaction
 from roadmap.models import RoadmapJob
 from catalyst.rate_limit.RateLimitExceeded import RateLimitExceeded
+from rest_framework.decorators import permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny
+
 
 
 logger = logging.getLogger(__name__)
@@ -37,7 +40,6 @@ parser = QueryParser()
 
 @api_view(['GET'])
 def getRoadmapJson(request):
-    user_id=authenticate(request)
     serializer = GetRoadmapRequestSerializer(data=request.query_params)
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -62,7 +64,6 @@ def getRoadmapJson(request):
     
 @api_view(['POST'])
 def getListRoadmap(request):
-    user_id=authenticate(request)
     payload = request.data or {}
     try:
         validated_request = validator.validate(payload)
@@ -75,7 +76,7 @@ def getListRoadmap(request):
             status=status.HTTP_400_BAD_REQUEST
         )
     try:
-        qs = query_builder.build(user_id,parsed_request)
+        qs = query_builder.build(request.user.id,parsed_request)
         serializer = RoadmapSerializer(qs, many=True)
         return Response({"response":serializer.data},status=status.HTTP_200_OK)
     except Exception:
@@ -90,15 +91,13 @@ def getListRoadmap(request):
 
 @api_view(['POST'])
 def generate_roadmap_view(request):
-
-    user_id=authenticate(request)
     serializer = GenerateRoadmapRequestSerializer(data=request.data)
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     try:
         job = service.create(
-            user_id=user_id,
+            user_id=request.user.id,
             input_data=serializer.validated_data,
         )
         if job:
@@ -124,8 +123,8 @@ def generate_roadmap_view(request):
 
 @api_view(['POST'])
 @csrf_exempt
+@permission_classes([AllowAny])
 def process_roadmap_task(request):
-
     data = json.loads(request.body)
     job_id = data["job_id"]
     try:
@@ -163,12 +162,11 @@ def process_roadmap_task(request):
 
 @api_view(['GET'])
 def pollRoadmap(request):
-    user_id=authenticate(request)
     serializer = GetJobRequestSerializer(data=request.query_params)
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     try:
-        roadmapJob =fetchRoadmapJob(user_id,**serializer.validated_data)
+        roadmapJob =fetchRoadmapJob(request.user.id,**serializer.validated_data)
         logger.info("successfully fetched the roadmap job and processing the response")
         return Response(
             roadmapJob,

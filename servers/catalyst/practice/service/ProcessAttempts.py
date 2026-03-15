@@ -59,9 +59,6 @@ def insertAttempts(
     """
     Insert immutable attempt events in bulk.
     """
-    
-    user = User.objects.filter(id=user_id).first()
-    now = timezone.now()
     answer_rows = []
     
     for attempt in attempts:
@@ -83,7 +80,7 @@ def insertAttempts(
 
         answer_rows.append(
             Answer(
-                user=user,
+                user_id=user_id,
                 roadmap=roadmap,
                 question=question,
                 selected_index=selected_index,

@@ -5,15 +5,13 @@ from rest_framework import status
 import logging
 from .fetchUserData import fetch_user_profile_with_top_roadmaps
 from rest_framework.exceptions import AuthenticationFailed
-from catalyst import authenticate
 
 logger = logging.getLogger(__name__)
 
 @api_view(['GET'])
 def get_user_profileData(request):
-    user_id = authenticate(request)
     try:
-        values=fetch_user_profile_with_top_roadmaps(user_id)
+        values=fetch_user_profile_with_top_roadmaps(request.user.id)
         return Response(
             {
                 "message": "User Profile Data",

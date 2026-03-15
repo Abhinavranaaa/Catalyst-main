@@ -1,5 +1,6 @@
 from django.shortcuts import render
 from rest_framework.views import APIView
+from rest_framework.decorators import api_view,permission_classes
 from .serializers import UserSerializer , UserLoginSerializer
 from rest_framework.response import Response
 from rest_framework.exceptions import AuthenticationFailed
@@ -19,8 +20,17 @@ from notifications.observer import EmailObserver
 from .serializers import SerializeUserInfo
 import logging
 from users.signals.createProfile import saveAndProcessUser
-from catalyst import authenticate
 from .service.dashboardRead import DashBoardReadService,DashBoardCacheService,DashboardBuilder
+from rest_framework.permissions import AllowAny
+from google_auth_oauthlib.flow import Flow
+from django.http import JsonResponse
+from django.conf import settings
+from django.shortcuts import redirect
+from google.oauth2 import id_token
+from google.auth.transport import requests as grequests
+from datetime import timedelta
+from django.db import DatabaseError
+import os
 
 # initialisation
 logger = logging.getLogger(__name__)
@@ -29,7 +39,19 @@ builder = DashboardBuilder()
 dashboard_service = DashBoardReadService(cache_service, builder)
 
 # Create your views here.
+
+
+def create_jwt(user_id):
+    payload = {
+        "id": user_id,
+        "exp": datetime.datetime.utcnow() + timedelta(minutes = 60),
+        "iat" : datetime.datetime.utcnow()
+    }
+
+    return jwt.encode(payload, "secret", algorithm="HS256")
+
 class RegisterView(APIView):
+    permission_classes = [AllowAny]
     def post(self, request):
         serializer = UserSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -37,29 +59,24 @@ class RegisterView(APIView):
         return Response(serializer.data)
 
 class LoginView(APIView):
+    permission_classes = [AllowAny]
     def post(self, request):
         serializer = UserLoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         email = serializer.validated_data['email']
         password = serializer.validated_data['password']
         user = User.objects.filter(email = email).first()
+        if user.auth_provider == "GOOGLE":
+            raise AuthenticationFailed("Login using your previous method: google")
 
         if user is None:
             raise AuthenticationFailed("User Not Found")
 
         if not user.check_password(password):
-            raise AuthenticationFailed("Incorrect Password")
+            raise AuthenticationFailed("Incorrect Password try other login options")
 
-        payload = {
-            "id" : user.id,
-            "exp" : datetime.datetime.utcnow() + datetime.timedelta(minutes = 60),
-            "iat" : datetime.datetime.utcnow()
-        }
-
-        token = jwt.encode(payload, "secret" , algorithm = "HS256")
-
+        token = create_jwt(user.id)
         response = Response()
-
         response.set_cookie(key = "jwt" , value = token, httponly = True , secure=True,samesite='None',path='/')
         response.data = {
             "jwt": token
@@ -293,6 +310,7 @@ class ProfileStatsView(BaseAuthenticatedView):
 
 
 class SubscribeView(APIView):
+    permission_classes = [AllowAny]
     def post(self, request):
         email = request.data.get("email")
         if not email:
@@ -316,19 +334,17 @@ class SubscribeView(APIView):
     
 @api_view(['POST'])
 def triggerOnboarding(request):
-    user_id = authenticate(request)
     serializer = SerializeUserInfo(data=request.data)
     serializer.is_valid(raise_exception=False)
-    response = saveAndProcessUser(user_id,**serializer.validated_data)
+    response = saveAndProcessUser(request.user.id,**serializer.validated_data)
     logger.info("save user info response: %s", response)
     return Response({"message": "Onboarded successfully"}, status=status.HTTP_201_CREATED)
 
 
 @api_view(['GET'])
 def getDashboard(request):
-    user_id = authenticate(request)
     try:
-        response = dashboard_service.render(user_id)
+        response = dashboard_service.render(request.user.id)
         return Response({"message": "rendered successfully","result":response}, status=status.HTTP_200_OK)
 
     except Exception as e:
@@ -339,6 +355,119 @@ def getDashboard(request):
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
     
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def google_login(request):
 
+    flow = Flow.from_client_config(
+        settings.GOOGLE_OAUTH_CONFIG,
+        scopes=[
+        "openid",
+        "https://www.googleapis.com/auth/userinfo.email",
+        "https://www.googleapis.com/auth/userinfo.profile"
+        ],
+        redirect_uri=settings.GOOGLE_REDIRECT_URI
+    )
 
+    auth_url, state = flow.authorization_url()
+    print(auth_url)
+    request.session["google_oauth_state"] = state
+    request.session["code_verifier"] = flow.code_verifier
 
+    return redirect(auth_url)
+
+@permission_classes([AllowAny])
+def google_callback(request):
+
+    try:
+        error = request.GET.get("error")
+        if error:
+            logger.warning(f"Google OAuth denied: {error}")
+            return redirect(settings.FRONTEND_LOGIN_FAILED)
+
+        state = request.session.get("google_oauth_state")
+        if not state:
+            logger.error("Missing OAuth state in session")
+            return redirect(settings.FRONTEND_LOGIN_FAILED)
+        
+        # os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
+
+        flow = Flow.from_client_config(
+            settings.GOOGLE_OAUTH_CONFIG,
+            scopes=[
+                "openid",
+                "https://www.googleapis.com/auth/userinfo.email",
+                "https://www.googleapis.com/auth/userinfo.profile"
+            ],
+            state=state,
+            code_verifier=request.session["code_verifier"],
+            redirect_uri=settings.GOOGLE_REDIRECT_URI
+        )
+
+        try:
+            flow.fetch_token(
+                authorization_response=request.build_absolute_uri()
+            )
+        except Exception:
+            logger.exception("Token exchange failed")
+            return redirect(settings.FRONTEND_LOGIN_FAILED)
+
+        credentials = flow.credentials
+
+        try:
+            idinfo = id_token.verify_oauth2_token(
+                credentials.id_token,
+                grequests.Request(),
+                settings.GOOGLE_CLIENT_ID
+            )
+        except Exception:
+            logger.exception("ID token verification failed")
+            return redirect(settings.FRONTEND_LOGIN_FAILED)
+
+        email = idinfo.get("email")
+        name = idinfo.get("name")
+
+        if not email:
+            logger.error("Email missing in Google profile")
+            return redirect(settings.FRONTEND_LOGIN_FAILED)
+
+        try:
+            user_id = user_init(email, name)
+        except DatabaseError:
+            logger.exception("User creation failed")
+            return redirect(settings.FRONTEND_LOGIN_FAILED)
+
+        try:
+            token = create_jwt(user_id)
+        except Exception:
+            logger.exception("JWT generation failed")
+            return redirect(settings.FRONTEND_LOGIN_FAILED)
+
+       
+        response = redirect(settings.FRONTEND_HOME)
+
+        response.set_cookie(
+            "jwt",
+            token,
+            httponly=True,
+            secure=True,
+            samesite="Lax",
+            max_age=settings.JWT_EXP_SECONDS
+        )
+
+        return response
+
+    except Exception:
+        logger.exception("Unexpected OAuth failure")
+        return redirect(settings.FRONTEND_LOGIN_FAILED)
+
+def user_init(email:str,name:str):
+    user = User.objects.filter(email=email).first()
+    if not user:
+        user = User.objects.create(
+            email=email,
+            name=name,
+            auth_provider="GOOGLE"
+        )
+    return user.id
+    

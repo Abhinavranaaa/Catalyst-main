@@ -11,16 +11,14 @@ from .services import batchProcess
 import json
 import logging
 from .tasks import process_daily_notifications_batch
-from catalyst import authenticate
-from users.models import User
 
 logger = logging.getLogger(__name__)
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def save_push_subscription(request):
     data = request.data
     obj, _ = WebPushSubscription.objects.update_or_create(
-        user = User.objects.filter(id=authenticate(request)).first(),
+        user = request.user.id,
         endpoint=data.get('endpoint'),
         defaults={
             'p256dh': data['keys']['p256dh'],
@@ -37,6 +35,7 @@ def get_vapid_public_key(request):
 
 @api_view(['GET'])
 @csrf_exempt
+@permission_classes([AllowAny])
 def triggerNotifications(request):
     response = batchProcess(request)
     logger.info("batchProcess response: %s", response)
@@ -45,6 +44,7 @@ def triggerNotifications(request):
 
 @csrf_exempt
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def process_notification_batch(request):
     
     try:

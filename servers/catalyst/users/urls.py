@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.urls import path
 from . import views
-from users.views import triggerOnboarding,getDashboard
+from users.views import triggerOnboarding,getDashboard, google_login, google_callback
 
 urlpatterns = [
     path("register", views.RegisterView.as_view(), name="register"),
@@ -18,6 +18,9 @@ urlpatterns = [
     path("profile/stats", views.ProfileStatsView.as_view(), name="profile-stats"),
     path("user/change-password", views.ChangePasswordView.as_view(), name="change-password"),
     path("profile/onboard", triggerOnboarding, name="onboarding-user"),
-    path("user/dashboard",getDashboard, name='dashboard')
+    path("user/dashboard",getDashboard, name='dashboard'),
+    path("user/google/auth",google_login, name='google_login'),
+    path("auth/google/callback",google_callback, name='google_callback')
+
 ]
 
