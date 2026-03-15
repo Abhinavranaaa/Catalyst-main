@@ -390,7 +390,7 @@ def google_callback(request):
             logger.error("Missing OAuth state in session")
             return redirect(settings.FRONTEND_LOGIN_FAILED)
         
-        os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
+        # os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
 
         flow = Flow.from_client_config(
             settings.GOOGLE_OAUTH_CONFIG,
