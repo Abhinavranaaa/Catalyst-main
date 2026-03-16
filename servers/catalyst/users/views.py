@@ -86,8 +86,7 @@ class LoginView(APIView):
 
 class UserView(APIView):
     def get(self,request):
-        user = BaseAuthenticatedView().get_user_from_token(request)
-
+        user = request.user
         serializer = UserSerializer(user)
         return Response(serializer.data)
 
