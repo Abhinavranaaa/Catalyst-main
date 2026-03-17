@@ -451,7 +451,7 @@ def google_callback(request):
             token,
             httponly=True,
             secure=True,
-            samesite=None,
+            samesite="None",
             max_age=settings.JWT_EXP_SECONDS
         )
 
