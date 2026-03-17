@@ -447,11 +447,12 @@ def google_callback(request):
         response = redirect(settings.FRONTEND_HOME)
 
         response.set_cookie(
-            "jwt",
-            token,
+            key="jwt",
+            value=token,
             httponly=True,
             secure=True,
             samesite="None",
+            path="/",
             max_age=settings.JWT_EXP_SECONDS
         )
 
