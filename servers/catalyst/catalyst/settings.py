@@ -208,7 +208,7 @@ EMAIL_HOST_USER = config("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD")
 
 # Default "from" email address for outgoing emails
-DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+DEFAULT_FROM_EMAIL = "Catalyst Roadmap <admin@catalystedutech.com>"
 
 # Your sending email constant (used in your send method)
 CATALYST_EMAIL = DEFAULT_FROM_EMAIL

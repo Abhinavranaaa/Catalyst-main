@@ -37,8 +37,7 @@ class EmailObserver(NotificationObserver):
         email = EmailMultiAlternatives(
             subject=subject,
             body=text_content,
-            from_email=CATALYST_EMAIL,
-            to=[user.email],
+            to=[user.email]
         )
         email.attach_alternative(html_content, "text/html")
         try:
