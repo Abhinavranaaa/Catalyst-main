@@ -45,7 +45,9 @@ ALLOWED_HOSTS = [
     'catalyst-main-109334363006.asia-south2.run.app',
     'catalyst-main-1036749949194.asia-south2.run.app',
     'catalyst-main-1036749949194.us-central1.run.app',
-    'api.catalystedutech.com'
+    'api.catalystedutech.com',
+    'catalystedutech.com',
+    'www.catalystedutech.com'
 ]
 
 STATIC_URL = '/static/'
@@ -171,10 +173,12 @@ AUTH_USER_MODEL = "users.User"
 CORS_ORIGIN_ALLOW_ALL = False
 CORS_ALLOWED_ORIGINS = [
     "https://catalyst-roadmap.vercel.app",
-    "http://localhost:4200"
+    "http://localhost:4200",
+    "https://catalystedutech.com",    
+    "https://www.catalystedutech.com"
+
 ]
 CORS_ALLOW_CREDENTIALS = True
-# change here later on
 
 CSRF_COOKIE_SAMESITE = 'None'
 SESSION_COOKIE_SAMESITE = 'None'
