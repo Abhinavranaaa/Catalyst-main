@@ -9,7 +9,7 @@ from langchain_cerebras import ChatCerebras
 from langchain_openai import ChatOpenAI
 import os
 from dotenv import load_dotenv
-from catalyst.constants import MAX_QUESTIONS_PER_ROADMAP, COLLECTION_NAME, LLM_MODEL_ROADMAP, MAX_TOKENS, LLM_TEMP2, ROADMAP_ID, PROMPT_TEMPLATE_V2, GROK_API_KEY,LLM_PROVIDER, GROK,PROMPT_TEMPLATE_V3, MAX_ROADMAPS_PER_WINDOW, WINDOW
+from catalyst.constants import MAX_QUESTIONS_PER_ROADMAP, COLLECTION_NAME_CONSTANT, LLM_MODEL_ROADMAP, MAX_TOKENS, LLM_TEMP2, ROADMAP_ID, PROMPT_TEMPLATE_V2, GROK_API_KEY,LLM_PROVIDER, GROK,PROMPT_TEMPLATE_V3, MAX_ROADMAPS_PER_WINDOW, WINDOW
 from notifications.services import normalize_interest
 from qdrant_client import QdrantClient
 import torch
@@ -42,6 +42,7 @@ VECTOR_DB_KEY = os.getenv("VECTOR_DB_KEY")
 CEREBRAS_API_KEY = os.getenv("CEREBRAS_API_KEY")
 GROK_API_KEY = os.getenv(GROK_API_KEY)
 LLM_MODEL_ROADMAP = os.getenv(LLM_MODEL_ROADMAP)
+COLLECTION_NAME = os.getenv(COLLECTION_NAME_CONSTANT)
 client = QdrantClient(url=VECTOR_DB_URL, api_key=VECTOR_DB_KEY)
 
 LLM_PROVIDER = os.getenv(LLM_PROVIDER, GROK)

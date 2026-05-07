@@ -1,6 +1,6 @@
 MAX_QUESTIONS_PER_ROADMAP = 30
 TRANSFORMERS_MODEL = "all-MiniLM-L6-v2"
-COLLECTION_NAME = "questions"
+COLLECTION_NAME_CONSTANT = "COLLECTION_NAME_VDB"
 QLOO_URL="https://hackathon.api.qloo.com/v2/insights"
 QLOO_URL_SEARCH="https://hackathon.api.qloo.com/search"
 QLOO_URL_TAGS="https://hackathon.api.qloo.com/v2/tags"
