@@ -9,7 +9,7 @@ from langchain_cerebras import ChatCerebras
 from langchain_openai import ChatOpenAI
 import os
 from dotenv import load_dotenv
-from catalyst.constants import MAX_QUESTIONS_PER_ROADMAP, COLLECTION_NAME_CONSTANT, LLM_MODEL_ROADMAP, MAX_TOKENS, LLM_TEMP2, ROADMAP_ID, PROMPT_TEMPLATE_V2, GROK_API_KEY,LLM_PROVIDER, GROK,PROMPT_TEMPLATE_V3, MAX_ROADMAPS_PER_WINDOW, WINDOW
+from catalyst.constants import MAX_QUESTIONS_PER_ROADMAP, COLLECTION_NAME_CONSTANT, LLM_MODEL_ROADMAP, MAX_TOKENS, LLM_TEMP2, ROADMAP_ID, PROMPT_TEMPLATE_V2, GROK_API_KEY, LLM_PROVIDER, GROK, OPENAI, OPENAI_API_KEY, PROMPT_TEMPLATE_V3, MAX_ROADMAPS_PER_WINDOW, WINDOW, LLM_MODEL_ROADMAP
 from notifications.services import normalize_interest
 from qdrant_client import QdrantClient
 import torch
@@ -41,19 +41,29 @@ VECTOR_DB_URL = os.getenv("VECTOR_DB_URL")
 VECTOR_DB_KEY = os.getenv("VECTOR_DB_KEY")
 CEREBRAS_API_KEY = os.getenv("CEREBRAS_API_KEY")
 GROK_API_KEY = os.getenv(GROK_API_KEY)
-LLM_MODEL_ROADMAP = os.getenv(LLM_MODEL_ROADMAP)
+OPENAI_KEY = os.getenv(OPENAI_API_KEY)
+# Roadmap: structured curriculum JSON — default gpt-5.4 (override via LLM_MODEL_ROADMAP).
+ROADMAP_MODEL = os.getenv(LLM_MODEL_ROADMAP) or "gpt-5.4"
 COLLECTION_NAME = os.getenv(COLLECTION_NAME_CONSTANT)
 client = QdrantClient(url=VECTOR_DB_URL, api_key=VECTOR_DB_KEY)
 
 LLM_PROVIDER = os.getenv(LLM_PROVIDER, GROK)
 
-if LLM_PROVIDER == "grok":
+if LLM_PROVIDER == GROK:
     llm = ChatOpenAI(
         model=LLM_MODEL_ROADMAP,
         api_key=GROK_API_KEY,
         base_url="https://api.groq.com/openai/v1",
         temperature=LLM_TEMP2,
         max_tokens=MAX_TOKENS
+    )
+elif LLM_PROVIDER == OPENAI:
+    logger.info(f"Using OpenAI model: {LLM_MODEL_ROADMAP}")
+    llm = ChatOpenAI(
+        model=LLM_MODEL_ROADMAP,
+        api_key=OPENAI_KEY,
+        temperature=LLM_TEMP2,
+        max_tokens=MAX_TOKENS,
     )
 else:
     llm = ChatCerebras(
@@ -63,8 +73,14 @@ else:
         max_tokens=MAX_TOKENS
     )
 
-if not VECTOR_DB_URL or not VECTOR_DB_KEY or not CEREBRAS_API_KEY:
-    raise Exception("One or more critical environment variables (VECTOR_DB_URL, VECTOR_DB_KEY, CEREBRAS_API_KEY) are missing.")
+if not VECTOR_DB_URL or not VECTOR_DB_KEY:
+    raise Exception("One or more critical environment variables (VECTOR_DB_URL, VECTOR_DB_KEY) are missing.")
+if LLM_PROVIDER == GROK and not GROK_API_KEY:
+    raise Exception("GROK_API_KEY is missing for LLM_PROVIDER=grok.")
+if LLM_PROVIDER == OPENAI and not OPENAI_KEY:
+    raise Exception("OPENAI_API_KEY is missing for LLM_PROVIDER=openai.")
+if LLM_PROVIDER not in (GROK, OPENAI) and not CEREBRAS_API_KEY:
+    raise Exception("CEREBRAS_API_KEY is missing for the configured non-Grok, non-OpenAI LLM provider.")
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -604,5 +620,6 @@ def normalize_difficulty(difficulty: str) -> str:
 
 # fox that error
 # count only successful attempts
+# 
 
 

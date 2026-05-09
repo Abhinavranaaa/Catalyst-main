@@ -4,11 +4,10 @@ from django.core.exceptions import ObjectDoesNotExist
 from users.models import UserProfile
 from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
-from langchain_cerebras import ChatCerebras
-from django.conf import settings
+from langchain_openai import ChatOpenAI
 import os
 from dotenv import load_dotenv
-from catalyst.constants import LLM_MODEL_PROFILE, MAX_TOKENS1, LLM_TEMP1, PROFILE_TEMPLATE_2
+from catalyst.constants import LLM_MODEL_PROFILE, MAX_TOKENS1, LLM_TEMP1, PROFILE_TEMPLATE_2, OPENAI_API_KEY
 from catalyst.utils import remove_think_blocks 
 import time
 from catalyst.infra.redis import redis_client
@@ -18,14 +17,22 @@ CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 BASE_DIR = os.path.abspath(os.path.join(CURRENT_DIR, '..','..'))
 if os.getenv("RENDER") != "true":
     load_dotenv(os.path.join(BASE_DIR, '.env'), override=True)
-CEREBRAS_API_KEY = os.getenv("CEREBRAS_API_KEY")
-LLM_MODEL_PROFILE = os.getenv(LLM_MODEL_PROFILE)
-llm = ChatCerebras(
-        model=LLM_MODEL_PROFILE, 
-        api_key=CEREBRAS_API_KEY,
-        temperature=LLM_TEMP1,
-        max_tokens=MAX_TOKENS1
+OPENAI_KEY = os.getenv(OPENAI_API_KEY)
+# Profile synthesis: summarization from metrics — default gpt-5.4-mini (override via LLM_MODEL_PROFILE).
+PROFILE_MODEL = os.getenv(LLM_MODEL_PROFILE) or "gpt-5.4-mini"
+
+if not OPENAI_KEY:
+    raise ValueError(
+        "OPENAI_API_KEY is required for profile synthesis. Set it in the environment."
     )
+
+logger.info(f"Using OpenAI model: {PROFILE_MODEL}")
+llm = ChatOpenAI(
+    model=PROFILE_MODEL,
+    api_key=OPENAI_KEY,
+    temperature=LLM_TEMP1,
+    max_tokens=MAX_TOKENS1,
+)
 
 def fetchUsrProfile(user_id: str) -> str:
     key= f"user_profile:{user_id}"
@@ -73,7 +80,7 @@ def buildUserProfile(user_id: str) -> Dict[str, str]:
         summary = remove_think_blocks(chain.run(user_data))
         # logger.info("LLM summary generated: %s", summary)
         end = time.time()
-        logger.info(f"Cerebras LLM profile latency: {end - start:.3f} seconds")
+        logger.info(f"OpenAI profile LLM latency: {end - start:.3f} seconds")
 
         return {
             "user_id": user_id,
