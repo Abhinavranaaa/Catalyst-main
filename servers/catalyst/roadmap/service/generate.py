@@ -51,23 +51,23 @@ LLM_PROVIDER = os.getenv(LLM_PROVIDER, GROK)
 
 if LLM_PROVIDER == GROK:
     llm = ChatOpenAI(
-        model=LLM_MODEL_ROADMAP,
+        model=ROADMAP_MODEL,
         api_key=GROK_API_KEY,
         base_url="https://api.groq.com/openai/v1",
         temperature=LLM_TEMP2,
         max_tokens=MAX_TOKENS
     )
 elif LLM_PROVIDER == OPENAI:
-    logger.info(f"Using OpenAI model: {LLM_MODEL_ROADMAP}")
+    logger.info(f"Using OpenAI model: {ROADMAP_MODEL}")
     llm = ChatOpenAI(
-        model=LLM_MODEL_ROADMAP,
+        model=ROADMAP_MODEL,
         api_key=OPENAI_KEY,
         temperature=LLM_TEMP2,
         max_tokens=MAX_TOKENS,
     )
 else:
     llm = ChatCerebras(
-        model_name=LLM_MODEL_ROADMAP,
+        model_name=ROADMAP_MODEL,
         api_key=CEREBRAS_API_KEY,
         temperature=LLM_TEMP2,
         max_tokens=MAX_TOKENS
@@ -292,7 +292,7 @@ def generate_roadmap_blocks(
         total_tokens = usage.get("total_tokens", 0)
 
         logger.info(
-            f"LLM | model={LLM_MODEL_ROADMAP} | "
+            f"LLM | model={ROADMAP_MODEL} | "
             f"prompt={prompt_tokens} | "
             f"completion={completion_tokens} | "
             f"total={total_tokens} | "
