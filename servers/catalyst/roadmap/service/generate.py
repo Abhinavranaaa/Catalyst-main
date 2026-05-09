@@ -444,7 +444,8 @@ def reshape_roadmap_for_response(raw_roadmap: dict,questions: Dict[str, Question
                 "correct_index": ques.correct_index,
                 "isBookmarked": False,
                 "status": "unanswered",
-                "difficulty": ques.difficulty
+                "difficulty": ques.difficulty,
+                "explanation": ques.explanation or ""
                 }
             else: 
                 logger.warning("No relevant questions found. skipping the q_id due to invalid q_id")
@@ -523,8 +524,9 @@ def sync_roadmap_json_with_question_status(
     roadmap
 ) -> Dict:
     """
-    Sync roadmap.generated_json with latest RoadmapQuestion.status
-    Avoids N+1 queries and works for both create & fetch flows.
+    Sync roadmap.generated_json with latest RoadmapQuestion.status and
+    Question.difficulty / Question.explanation so enrichments from external
+    services are always reflected when the JSON is read or saved.
     """
 
     if not roadmap.generated_json:
@@ -535,11 +537,16 @@ def sync_roadmap_json_with_question_status(
     roadmap_questions = (
         RoadmapQuestion.objects
         .filter(roadmap=roadmap)
-        .only("question_id", "status")
+        .select_related("question")
+        .only("question_id", "status", "question__difficulty", "question__explanation")
     )
 
-    status_map = {
-        str(rq.question_id): rq.status
+    question_map = {
+        str(rq.question_id): {
+            "status": rq.status,
+            "difficulty": rq.question.difficulty,
+            "explanation": rq.question.explanation or "",
+        }
         for rq in roadmap_questions
     }
 
@@ -548,7 +555,11 @@ def sync_roadmap_json_with_question_status(
             qid = q.get("id")
             if not qid:
                 continue
-            q["status"] = status_map.get(qid, "unanswered")
+            data = question_map.get(qid)
+            q["status"] = data["status"] if data else "unanswered"
+            if data:
+                q["difficulty"] = data["difficulty"]
+                q["explanation"] = data["explanation"]
 
     return roadmap_json
 
