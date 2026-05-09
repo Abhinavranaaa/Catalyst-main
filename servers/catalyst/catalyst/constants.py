@@ -1,4 +1,6 @@
-MAX_QUESTIONS_PER_ROADMAP = 30
+MAX_QUESTIONS_PER_ROADMAP = 30  # legacy — kept for reference
+SIMILARITY_THRESHOLD = 0.60       # min cosine similarity to include a question (0–1)
+MAX_QUESTIONS_FETCH_CAP = 120      # hard upper bound sent to Qdrant
 TRANSFORMERS_MODEL = "all-MiniLM-L6-v2"
 COLLECTION_NAME_CONSTANT = "COLLECTION_NAME_VDB"
 QLOO_URL="https://hackathon.api.qloo.com/v2/insights"
@@ -236,6 +238,11 @@ QUESTION BANK (SOURCE OF TRUTH)
 ====================
 {questions_data}
 
+Each question includes a `similarity_score` (0.0–1.0). This is the cosine similarity between the
+question and the requested topic. Higher means more topically relevant. Use this signal when deciding
+which questions to drop — questions with a lower similarity_score should be dropped first when they
+also fail the content rules below.
+
 IMPORTANT:
 - You may ONLY use questions provided in the QUESTION BANK
 - Every question_id in the output MUST exist in the input
@@ -267,9 +274,11 @@ TASK
    - The question difficulty creates a progression break (advanced before foundation)
    - The question does not contribute to learning progression toward later blocks
    - The question is unrelated to the learner’s weak areas AND does not support core foundations
+   - The question has a low similarity_score (below ~0.60) AND fails at least one of the above rules
 
+   When two questions are otherwise equally valid, prefer the one with the higher similarity_score.
    DO NOT drop questions randomly.
-   DO NOT drop questions for brevity.
+   DO NOT drop questions solely because the set is large.
    Prefer keeping questions unless a rule above explicitly applies.
 
 3. Learning Block Construction

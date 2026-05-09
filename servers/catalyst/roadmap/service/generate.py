@@ -9,7 +9,7 @@ from langchain_cerebras import ChatCerebras
 from langchain_openai import ChatOpenAI
 import os
 from dotenv import load_dotenv
-from catalyst.constants import MAX_QUESTIONS_PER_ROADMAP, COLLECTION_NAME_CONSTANT, LLM_MODEL_ROADMAP, MAX_TOKENS, LLM_TEMP2, ROADMAP_ID, PROMPT_TEMPLATE_V2, GROK_API_KEY, LLM_PROVIDER, GROK, OPENAI, OPENAI_API_KEY, PROMPT_TEMPLATE_V3, MAX_ROADMAPS_PER_WINDOW, WINDOW, LLM_MODEL_ROADMAP
+from catalyst.constants import MAX_QUESTIONS_PER_ROADMAP, SIMILARITY_THRESHOLD, MAX_QUESTIONS_FETCH_CAP, COLLECTION_NAME_CONSTANT, LLM_MODEL_ROADMAP, MAX_TOKENS, LLM_TEMP2, ROADMAP_ID, PROMPT_TEMPLATE_V2, GROK_API_KEY, LLM_PROVIDER, GROK, OPENAI, OPENAI_API_KEY, PROMPT_TEMPLATE_V3, MAX_ROADMAPS_PER_WINDOW, WINDOW, LLM_MODEL_ROADMAP
 from notifications.services import normalize_interest
 from qdrant_client import QdrantClient
 import torch
@@ -108,7 +108,7 @@ def generate_roadmap(user_id: str, subject: str, topic: str, additional_comments
         summary = fetchUsrProfile(user_id)
         end=time.time()
         logger.info(f"profile summary latency: {end - start:.3f} seconds")
-        qdrant_hits = fetch_relevant_questions(subject, topic, MAX_QUESTIONS_PER_ROADMAP, additional_comments)
+        qdrant_hits = fetch_relevant_questions(subject, topic, additional_comments)
         question_data = _fetch_question_metadata(qdrant_hits)
         question_set = _format_results(qdrant_hits, question_data)
 
@@ -141,38 +141,39 @@ def generate_roadmap(user_id: str, subject: str, topic: str, additional_comments
 def fetch_relevant_questions(
     subject: str,
     topic: str,
-    top_k: int,
-    additional_comments: Optional[str] = ""
+    additional_comments: Optional[str] = "",
+    score_threshold: float = SIMILARITY_THRESHOLD,
 ):
     """
-    Retrieves the most relevant questions by querying a vector search index (Qdrant)
-    using semantic similarity, then fetching rich metadata from the relational DB.
+    Retrieves questions from Qdrant whose cosine similarity exceeds score_threshold.
+    The count is dynamic — the LLM decides which to keep when building blocks.
     """
     try:
         query_text = f"Subject: {subject}. Topic: {topic}. {additional_comments}".strip()
         query_vector = generate_embedding_from_text(query_text)
-        qdrant_hits = _query_qdrant(query_vector, top_k)
+        qdrant_hits = _query_qdrant(query_vector, score_threshold)
         return qdrant_hits
 
     except Exception as e:
         logger.error(f"🔥 Failed to fetch relevant questions: {e}", exc_info=True)
         return []
-    
 
-def _query_qdrant(query_vector: List[float], top_k: int):
+
+def _query_qdrant(query_vector: List[float], score_threshold: float):
     """
-    Queries Qdrant for top_k semantically similar items.
+    Queries Qdrant for all items above score_threshold, capped at MAX_QUESTIONS_FETCH_CAP.
     """
     logger.info("🔍 Querying Qdrant...")
-    start=time.time()
+    start = time.time()
     results = client.search(
         collection_name=COLLECTION_NAME,
         query_vector=query_vector,
-        limit=top_k,
+        limit=MAX_QUESTIONS_FETCH_CAP,
+        score_threshold=score_threshold,
         with_payload=False,
     )
-    end=time.time()
-    logger.info(f"Qdrant latency: {end - start:.3f} seconds")
+    end = time.time()
+    logger.info(f"Qdrant latency: {end - start:.3f}s | threshold={score_threshold} | hits={len(results)}")
 
     if not results:
         logger.warning("⚠️ No matching results found in Qdrant.")
@@ -223,7 +224,7 @@ def _format_results(results, question_metadata: Dict[str, Question]) -> List[Dic
             "source": question.source or "unknown",
             "options": question.options,
             "correct_index": question.correct_index,
-            "similarity_score": round(1 - hit.score, 4)
+            "similarity_score": round(hit.score, 4)
         })
 
     logger.info(f"✅ Formatted {len(formatted)} questions from {len(results)} hits.")
@@ -253,10 +254,11 @@ def generate_roadmap_blocks(
             "topic": q.get("topic", "general"),
             "options": q.get("options", []),
             "similarity_score": round(q.get("similarity_score", 0.0), 3),
-            "correct_index": q.get("correct_index",-1)
+            "correct_index": q.get("correct_index", -1)
         }
-        for q in questions[:MAX_QUESTIONS_PER_ROADMAP]
+        for q in questions
     ]
+    logger.info(f"Sending {len(questions_summary)} questions to LLM for roadmap construction.")
 
     # Explicit prompt with clear instructions on using user profile for selection and grouping
     template = PROMPT_TEMPLATE_V3
