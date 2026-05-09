@@ -9,7 +9,7 @@ from langchain_cerebras import ChatCerebras
 from langchain_openai import ChatOpenAI
 import os
 from dotenv import load_dotenv
-from catalyst.constants import MAX_QUESTIONS_PER_ROADMAP, SIMILARITY_THRESHOLD, MAX_QUESTIONS_FETCH_CAP, COLLECTION_NAME_CONSTANT, LLM_MODEL_ROADMAP, MAX_TOKENS, LLM_TEMP2, ROADMAP_ID, PROMPT_TEMPLATE_V2, GROK_API_KEY, LLM_PROVIDER, GROK, OPENAI, OPENAI_API_KEY, PROMPT_TEMPLATE_V3, MAX_ROADMAPS_PER_WINDOW, WINDOW, LLM_MODEL_ROADMAP
+from catalyst.constants import MAX_QUESTIONS_PER_ROADMAP, SIMILARITY_THRESHOLD, MAX_QUESTIONS_FETCH_CAP, COLLECTION_NAME_CONSTANT, LLM_MODEL_ROADMAP, MAX_TOKENS, MAX_TOKENS_ROADMAP, LLM_TEMP2, ROADMAP_ID, PROMPT_TEMPLATE_V2, GROK_API_KEY, LLM_PROVIDER, GROK, OPENAI, OPENAI_API_KEY, PROMPT_TEMPLATE_V3, PROMPT_TEMPLATE_V4, MAX_ROADMAPS_PER_WINDOW, WINDOW, LLM_MODEL_ROADMAP
 from notifications.services import normalize_interest
 from qdrant_client import QdrantClient
 import torch
@@ -55,7 +55,7 @@ if LLM_PROVIDER == GROK:
         api_key=GROK_API_KEY,
         base_url="https://api.groq.com/openai/v1",
         temperature=LLM_TEMP2,
-        max_tokens=MAX_TOKENS
+        max_tokens=MAX_TOKENS_ROADMAP
     )
 elif LLM_PROVIDER == OPENAI:
     logger.info(f"Using OpenAI model: {ROADMAP_MODEL}")
@@ -63,14 +63,14 @@ elif LLM_PROVIDER == OPENAI:
         model=ROADMAP_MODEL,
         api_key=OPENAI_KEY,
         temperature=LLM_TEMP2,
-        max_tokens=MAX_TOKENS,
+        max_tokens=MAX_TOKENS_ROADMAP,
     )
 else:
     llm = ChatCerebras(
         model_name=ROADMAP_MODEL,
         api_key=CEREBRAS_API_KEY,
         temperature=LLM_TEMP2,
-        max_tokens=MAX_TOKENS
+        max_tokens=MAX_TOKENS_ROADMAP
     )
 
 if not VECTOR_DB_URL or not VECTOR_DB_KEY:
@@ -261,7 +261,7 @@ def generate_roadmap_blocks(
     logger.info(f"Sending {len(questions_summary)} questions to LLM for roadmap construction.")
 
     # Explicit prompt with clear instructions on using user profile for selection and grouping
-    template = PROMPT_TEMPLATE_V3
+    template = PROMPT_TEMPLATE_V4
     prompt = PromptTemplate.from_template(template)
 
     try:
@@ -282,7 +282,7 @@ def generate_roadmap_blocks(
         end = time.time()
         latency = end - start
 
-        response_text = response.content
+        response_text = remove_think_blocks(response.content)
 
         # ✅ Proper token extraction
         usage = response.response_metadata.get("token_usage", {})
