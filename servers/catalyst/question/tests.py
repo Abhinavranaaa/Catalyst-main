@@ -8,7 +8,7 @@ class QuestionExplanationFieldTest(TestCase):
         defaults = dict(
             topic="Algebra",
             subject="Mathematics",
-            difficulty="medium",
+            difficulty=3,
             options=["A", "B", "C", "D"],
             correct_index=0,
             text="What is 2 + 2?",
@@ -45,7 +45,7 @@ class EnrichmentStatusTransitionTest(TestCase):
         return Question.objects.create(
             topic="Algebra",
             subject="Mathematics",
-            difficulty="medium",
+            difficulty=3,
             options=["A", "B", "C", "D"],
             correct_index=0,
             text="What is 2 + 2?",

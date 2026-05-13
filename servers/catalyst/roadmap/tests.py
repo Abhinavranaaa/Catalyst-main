@@ -12,7 +12,7 @@ from roadmap.service.generate import reshape_roadmap_for_response, sync_roadmap_
 # ---------------------------------------------------------------------------
 
 def make_user():
-    return User.objects.create_user(
+    return User.objects.create(
         email=f"test_{uuid.uuid4().hex[:8]}@example.com",
         password="testpass",
         name="Test User",
@@ -23,11 +23,13 @@ def make_question(**kwargs):
     defaults = dict(
         topic="Algebra",
         subject="Mathematics",
-        difficulty="medium",
+        difficulty=3,
         options=["A", "B", "C", "D"],
         correct_index=1,
         text="What is 3 + 3?",
         explanation=None,
+        distractor_explanations=None,
+        bloom_level=None,
     )
     defaults.update(kwargs)
     return Question.objects.create(**defaults)
@@ -84,7 +86,7 @@ class ReshapeRoadmapForResponseTest(TestCase):
 
     def test_difficulty_comes_from_db_not_llm(self):
         """Difficulty stored on the Question model is used, not whatever the LLM put in the block."""
-        q = make_question(difficulty="hard")
+        q = make_question(difficulty=5)
         raw = make_raw_roadmap(str(q.id))
         question_lookup = {str(q.id): q}
 
@@ -111,6 +113,39 @@ class ReshapeRoadmapForResponseTest(TestCase):
         result = reshape_roadmap_for_response(raw, {})
         self.assertEqual(result["roadmapItems"][0]["questions"], [])
 
+    def test_distractor_explanations_included_in_output(self):
+        q = make_question(distractor_explanations="B is wrong because..., C is wrong because...")
+        raw = make_raw_roadmap(str(q.id), q.text, q.topic)
+
+        result = reshape_roadmap_for_response(raw, {str(q.id): q})
+
+        q_out = result["roadmapItems"][0]["questions"][0]
+        self.assertEqual(q_out["distractor_explanations"], "B is wrong because..., C is wrong because...")
+
+    def test_distractor_explanations_defaults_to_empty_string_when_null(self):
+        q = make_question(distractor_explanations=None)
+        raw = make_raw_roadmap(str(q.id))
+
+        result = reshape_roadmap_for_response(raw, {str(q.id): q})
+
+        self.assertEqual(result["roadmapItems"][0]["questions"][0]["distractor_explanations"], "")
+
+    def test_bloom_level_included_in_output(self):
+        q = make_question(bloom_level=3)
+        raw = make_raw_roadmap(str(q.id))
+
+        result = reshape_roadmap_for_response(raw, {str(q.id): q})
+
+        self.assertEqual(result["roadmapItems"][0]["questions"][0]["bloom_level"], 3)
+
+    def test_bloom_level_is_none_when_not_set(self):
+        q = make_question(bloom_level=None)
+        raw = make_raw_roadmap(str(q.id))
+
+        result = reshape_roadmap_for_response(raw, {str(q.id): q})
+
+        self.assertIsNone(result["roadmapItems"][0]["questions"][0]["bloom_level"])
+
 
 # ---------------------------------------------------------------------------
 # sync_roadmap_json_with_question_status
@@ -118,9 +153,16 @@ class ReshapeRoadmapForResponseTest(TestCase):
 
 class SyncRoadmapJsonTest(TestCase):
 
-    def _make_roadmap_with_question(self, difficulty="medium", explanation=None, status="unanswered"):
+    def _make_roadmap_with_question(self, difficulty=3, explanation=None,
+                                     distractor_explanations=None, bloom_level=None,
+                                     status="unanswered"):
         user = make_user()
-        q = make_question(difficulty=difficulty, explanation=explanation)
+        q = make_question(
+            difficulty=difficulty,
+            explanation=explanation,
+            distractor_explanations=distractor_explanations,
+            bloom_level=bloom_level,
+        )
         generated_json = {
             "roadmapItems": [
                 {
@@ -130,8 +172,10 @@ class SyncRoadmapJsonTest(TestCase):
                         {
                             "id": str(q.id),
                             "question_text": q.text,
-                            "difficulty": "easy",       # stale value — should be overwritten
-                            "explanation": "old text",  # stale value — should be overwritten
+                            "difficulty": "easy",                  # stale — should be overwritten
+                            "explanation": "old text",             # stale — should be overwritten
+                            "distractor_explanations": "old text", # stale — should be overwritten
+                            "bloom_level": 99,                     # stale — should be overwritten
                             "status": "unanswered",
                         }
                     ],
@@ -158,7 +202,7 @@ class SyncRoadmapJsonTest(TestCase):
 
     def test_sync_updates_difficulty_from_db(self):
         """After FastAPI re-analyses difficulty, sync replaces the stale value in JSON."""
-        roadmap, q = self._make_roadmap_with_question(difficulty="hard")
+        roadmap, q = self._make_roadmap_with_question(difficulty=5)
 
         result = sync_roadmap_json_with_question_status(roadmap)
 
@@ -196,6 +240,23 @@ class SyncRoadmapJsonTest(TestCase):
 
         q_out = result["roadmapItems"][0]["questions"][0]
         self.assertEqual(q_out["status"], "unanswered")
+
+    def test_sync_updates_distractor_explanations_from_db(self):
+        """After enrichment, sync pulls the new distractor_explanations into the JSON."""
+        roadmap, q = self._make_roadmap_with_question(distractor_explanations="B wrong, C wrong")
+
+        result = sync_roadmap_json_with_question_status(roadmap)
+
+        q_out = result["roadmapItems"][0]["questions"][0]
+        self.assertEqual(q_out["distractor_explanations"], "B wrong, C wrong")
+
+    def test_sync_updates_bloom_level_from_db(self):
+        """After enrichment, sync pulls the new bloom_level into the JSON."""
+        roadmap, q = self._make_roadmap_with_question(bloom_level=4)
+
+        result = sync_roadmap_json_with_question_status(roadmap)
+
+        self.assertEqual(result["roadmapItems"][0]["questions"][0]["bloom_level"], 4)
 
     def test_sync_returns_empty_dict_when_no_generated_json(self):
         user = make_user()

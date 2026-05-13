@@ -34,7 +34,7 @@ class AnalyticsUpdaterUserStats(AnalyticsUpdater):
                 stats.total_time_spent_seconds+=attempt.time_taken_seconds
             
             if attempt.is_correct:
-                difficulty = attempt.question.difficulty.strip().lower()
+                difficulty = attempt.question.difficulty_label
 
                 if difficulty == "easy":
                     stats.easy_correct += 1

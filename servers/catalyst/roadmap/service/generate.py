@@ -220,7 +220,7 @@ def _format_results(results, question_metadata: Dict[str, Question]) -> List[Dic
             "text": question.text,
             "topic": question.topic or "unknown",
             "subject": question.subject or "unknown",
-            "difficulty": question.difficulty or "medium",
+            "difficulty": question.difficulty_label or "medium",
             "source": question.source or "unknown",
             "options": question.options,
             "correct_index": question.correct_index,
@@ -433,7 +433,7 @@ def reshape_roadmap_for_response(raw_roadmap: dict,questions: Dict[str, Question
             if not ques:
                 logger.warning(f"Question id {qid} not found in question lookup. Skipping.")
                 continue
-            score_diff+=difficulty_map[normalize_difficulty(ques.difficulty)]
+            score_diff+=difficulty_map[normalize_difficulty(ques.difficulty_label)]
             roadmap_difficulty+=score_diff
             ct+=1
             roadmap_question+=1
@@ -446,22 +446,24 @@ def reshape_roadmap_for_response(raw_roadmap: dict,questions: Dict[str, Question
                 "correct_index": ques.correct_index,
                 "isBookmarked": False,
                 "status": "unanswered",
-                "difficulty": ques.difficulty,
-                "explanation": ques.explanation or ""
+                "difficulty": ques.difficulty_label,
+                "explanation": ques.explanation or "",
+                "distractor_explanations": ques.distractor_explanations or "",
+                "bloom_level": ques.bloom_level,
                 }
             else: 
                 logger.warning("No relevant questions found. skipping the q_id due to invalid q_id")
             
             item["questions"].append(question)
 
-        avg_difficulty_score = round(score_diff / ct)
+        avg_difficulty_score = round(score_diff / ct) if ct else 2
         item["difficulty"] = score_difficulty_map.get(
                 avg_difficulty_score, "Medium"
             )
 
         roadmap_items.append(item)
 
-    roadmap_difficulty = round(roadmap_difficulty/roadmap_question)
+    roadmap_difficulty = round(roadmap_difficulty/roadmap_question) if roadmap_question else 2
     avg_roadmap_difficulty = score_difficulty_map.get(avg_difficulty_score, "Medium")
     return {
         "roadmapItems": roadmap_items,
@@ -540,14 +542,22 @@ def sync_roadmap_json_with_question_status(
         RoadmapQuestion.objects
         .filter(roadmap=roadmap)
         .select_related("question")
-        .only("question_id", "status", "question__difficulty", "question__explanation")
+        .only(
+            "question_id", "status",
+            "question__difficulty",
+            "question__explanation",
+            "question__distractor_explanations",
+            "question__bloom_level",
+        )
     )
 
     question_map = {
         str(rq.question_id): {
             "status": rq.status,
-            "difficulty": rq.question.difficulty,
+            "difficulty": rq.question.difficulty_label,
             "explanation": rq.question.explanation or "",
+            "distractor_explanations": rq.question.distractor_explanations or "",
+            "bloom_level": rq.question.bloom_level,
         }
         for rq in roadmap_questions
     }
@@ -562,6 +572,8 @@ def sync_roadmap_json_with_question_status(
             if data:
                 q["difficulty"] = data["difficulty"]
                 q["explanation"] = data["explanation"]
+                q["distractor_explanations"] = data["distractor_explanations"]
+                q["bloom_level"] = data["bloom_level"]
 
     return roadmap_json
 
