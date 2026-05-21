@@ -6,5 +6,5 @@ urlpatterns = [
     path("get-roadmap", getRoadmapJson, name="fetch-roadmap"),
     path("roadmap-list",getListRoadmap, name = "search-roadmap"),
     path("task-be",process_roadmap_task,name="task-backend"),
-    path("job",pollRoadmap,name="job")
+    path("job",pollRoadmap,name="job"),
 ]

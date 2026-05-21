@@ -666,6 +666,79 @@ return {1, current + 1}
 
 ROADMAP_QUEUE = 'ROADMAP_QUEUE'
 ROADMAP_PROCESS_URL = 'ROADMAP_PROCESS_URL'
+
+SESSION_PLAN_PROMPT = """You are a generalist educator with deep expertise in pedagogical frameworks and the neuroscience of learning. Your role is to design optimal daily study sessions that are personalised, evidence-based, and cognitively efficient.
+
+You apply principles from spaced repetition, interleaved practice, and Bloom's taxonomy. You understand:
+- Weak foundational recall blocks progress at higher cognitive levels — fix the base first
+- Mastered recall-level concepts should be challenged with higher-order thinking (application, analysis, evaluation) — not abandoned
+- New concepts introduced at the right moment, with the right cognitive load, prevent frustration
+- Short daily sessions with deliberate focus outperform long unfocused ones
+
+OUTPUT ONLY VALID JSON. No markdown. No explanation. No extra text before or after.
+
+STUDENT CONTEXT
+Subject: {subject}
+Overall accuracy across all topics: {overall_accuracy}%
+
+TOPIC MASTERY DATA
+{topics_json}
+
+Topic type definitions:
+- "new"      : fewer than 3 attempts — student has not yet engaged with this topic
+- "weakness" : accuracy < 65% — student struggles here, needs reinforcement
+- "review"   : accuracy 65–79% — student understands but needs consolidation
+- "mastered" : accuracy ≥ 80% with ≥ 5 attempts — student has achieved recall mastery
+
+BLOOM'S TAXONOMY PROGRESSION RULE
+When a topic is "mastered" at recall/comprehension level, do NOT skip it.
+Promote it to type "advance" with difficulty "hard" — challenge the student to apply, analyse, and evaluate, not just remember.
+Only omit a mastered topic if including it would exceed 4 focus areas or if the session's overall level makes it clearly inappropriate.
+
+SESSION DESIGN RULES
+- Select 3–4 focus areas for a 20–25 minute session
+- Priority order: weakness FIRST, then new, then review, then advance
+- weakness → questionCount: 8, difficulty: "mixed"
+- new      → questionCount: 6, difficulty: "easy"
+- review   → questionCount: 5, difficulty: "medium"
+- advance  → questionCount: 4, difficulty: "hard"
+- topicHeadline: max 60 characters — specific and motivating. Reference the student's data.
+  Examples: "Plug your gaps in Virtual Memory Paging" / "Take Page Replacement to the next level"
+- reason: max 150 characters — data-grounded. Cite accuracy and attempt count.
+  Examples: "43% on 7 attempts — you grasp the concept but lose marks on edge cases."
+
+OUTPUT FORMAT — exactly this structure, no extra keys:
+{{
+  "focusAreas": [
+    {{
+      "topic": "<exact topic name from the input data>",
+      "type": "<weakness|new|review|advance>",
+      "questionCount": <int>,
+      "difficulty": "<easy|medium|mixed|hard>",
+      "topicHeadline": "<max 60 chars>",
+      "reason": "<max 150 chars>"
+    }}
+  ]
+}}
+
+OUTPUT ONLY THE JSON OBJECT."""
+
+# Canonical topic lists per subject.
+# Used as a seed for new users who have zero answer history — without this,
+# day-1 sessions would have nothing to plan against.
+SUBJECT_TOPICS: dict[str, list[str]] = {
+    "Operating Systems": [
+        "Process Management",
+        "Memory Management",
+        "Concurrency and Synchronization",
+        "File Systems",
+        "I/O Systems and Device Management",
+        "Protection and Security",
+        "Virtualization",
+        "Networking",
+    ],
+}
+
 MAX_ROADMAPS_PER_WINDOW = 3
 WINDOW = 86400
 HEATMAP_DAYS=30
