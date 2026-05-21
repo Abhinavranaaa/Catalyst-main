@@ -66,6 +66,32 @@ class RoadmapQuestion(models.Model):
         managed = True
 
 
+class DailySession(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    subject = models.CharField(max_length=255)
+    date = models.DateField()
+    payload_json = models.JSONField()
+    session_id = models.UUIDField(default=uuid.uuid4, editable=False)
+    is_completed = models.BooleanField(default=False)
+    generated_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    completion_accuracy = models.IntegerField(null=True, blank=True)
+    completion_questions = models.IntegerField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'daily_sessions'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'subject', 'date'],
+                name='unique_daily_session_per_subject'
+            )
+        ]
+        indexes = [
+            models.Index(fields=['user', 'date']),
+        ]
+
+
 class RoadmapJob(models.Model):
 
     class Status(models.TextChoices):
