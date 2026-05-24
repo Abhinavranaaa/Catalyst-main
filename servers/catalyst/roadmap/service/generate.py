@@ -487,7 +487,12 @@ def parse_llm_response_to_json(response: Union[str, dict], debug_log: Optional[c
                 debug_log(f"Fallback ast.literal_eval failed: {e2}")
 
     return None
-        
+
+
+def _attachments_for_question(question: Question) -> list:
+    return [att.to_display_dict() for att in question.attachments.all()]
+
+
 def reshape_roadmap_for_response(raw_roadmap: dict,questions: Dict[str, Question]) -> dict:
     """
     Convert internal roadmap representation to the expected JSON response format,
@@ -544,6 +549,7 @@ def reshape_roadmap_for_response(raw_roadmap: dict,questions: Dict[str, Question
                 "explanation": ques.explanation or "",
                 "distractor_explanations": ques.distractor_explanations or "",
                 "bloom_level": ques.bloom_level,
+                "attachments": _attachments_for_question(ques),
                 }
             else: 
                 logger.warning("No relevant questions found. skipping the q_id due to invalid q_id")

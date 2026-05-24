@@ -1,7 +1,7 @@
 import uuid
 from types import SimpleNamespace
 from django.test import TestCase
-from question.models import Question
+from question.models import AttachmentType, Question, QuestionAttachment
 from roadmap.models import Roadmap, RoadmapQuestion
 from users.models import User
 from roadmap.service.generate import reshape_roadmap_for_response, sync_roadmap_json_with_question_status
@@ -145,6 +145,24 @@ class ReshapeRoadmapForResponseTest(TestCase):
         result = reshape_roadmap_for_response(raw, {str(q.id): q})
 
         self.assertIsNone(result["roadmapItems"][0]["questions"][0]["bloom_level"])
+
+    def test_attachments_included_in_output(self):
+        q = make_question()
+        QuestionAttachment.objects.create(
+            question=q,
+            attachment_type=AttachmentType.TEXT,
+            inline_content="See diagram.",
+            metadata={"format": "plain"},
+            order=0,
+        )
+        raw = make_raw_roadmap(str(q.id))
+
+        result = reshape_roadmap_for_response(raw, {str(q.id): q})
+
+        attachments = result["roadmapItems"][0]["questions"][0]["attachments"]
+        self.assertEqual(len(attachments), 1)
+        self.assertEqual(attachments[0]["type"], "text")
+        self.assertEqual(attachments[0]["content"], "See diagram.")
 
 
 # ---------------------------------------------------------------------------
