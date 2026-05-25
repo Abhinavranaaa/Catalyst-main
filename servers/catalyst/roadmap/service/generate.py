@@ -114,7 +114,8 @@ def generate_roadmap(user_id: str, subject: str, topic: str, additional_comments
 
         if not question_set:
             logger.warning("No relevant questions found. Falling back to generic roadmap.")
-            return create_fallback_roadmap([])
+            fallback = create_fallback_roadmap([])
+            return {"formatted": reshape_roadmap_for_response(fallback, {}), "raw": fallback}
 
         roadmap = generate_roadmap_blocks(
             llm=llm,
@@ -135,7 +136,8 @@ def generate_roadmap(user_id: str, subject: str, topic: str, additional_comments
 
     except Exception as e:
         logger.error(f"Critical failure in roadmap pipeline: {e}", exc_info=True)
-        return create_fallback_roadmap([])
+        fallback = create_fallback_roadmap([])
+        return {"formatted": reshape_roadmap_for_response(fallback, {}), "raw": fallback}
 
 
 def fetch_relevant_questions(
@@ -450,6 +452,9 @@ def reshape_roadmap_for_response(raw_roadmap: dict,questions: Dict[str, Question
                 "explanation": ques.explanation or "",
                 "distractor_explanations": ques.distractor_explanations or "",
                 "bloom_level": ques.bloom_level,
+                "snippet_language": ques.snippet_language,
+                "snippet_body": ques.snippet_body,
+                "snippet_line_range": ques.snippet_line_range,
                 }
             else: 
                 logger.warning("No relevant questions found. skipping the q_id due to invalid q_id")
