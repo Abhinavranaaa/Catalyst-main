@@ -64,6 +64,14 @@ class Question(models.Model):
     explanation = models.TextField(blank=True, null=True)
     distractor_explanations = models.TextField(blank=True, null=True)
 
+    # Code snippet fields — populated for snippet-based questions.
+    # snippet_language: GeSHi/highlighter language identifier, e.g. "java", "python", "cpp", "sql".
+    # snippet_body: the raw source code to display.
+    # snippet_line_range: optional [start, end] 1-indexed line numbers to highlight; null = show all.
+    snippet_language = models.CharField(max_length=50, blank=True, null=True)
+    snippet_body = models.TextField(blank=True, null=True)
+    snippet_line_range = ArrayField(models.PositiveSmallIntegerField(), size=2, blank=True, null=True)
+
     # Bloom's Taxonomy level 1–6 (Remember → Create).
     bloom_level = models.PositiveSmallIntegerField(blank=True, null=True)
 
