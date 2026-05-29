@@ -28,7 +28,7 @@ LLM_TEMP=0.6
 LLM_TEMP1=0.3
 LLM_TEMP2=0.3
 MAX_TOKENS=4096
-MAX_TOKENS_ROADMAP=8192
+MAX_TOKENS_ROADMAP=16384
 MAX_TOKENS1=600
 MAX_RES_QLOO=5
 MAX_QLOO_ITEMS=10
@@ -362,9 +362,16 @@ QUESTION BANK (every item is eligible by default)
 {questions_data}
 
 Each question carries a `similarity_score` ∈ [0.0, 1.0]. Higher = more topically relevant.
-This is a Qdrant cosine similarity from a topic-aware retrieval. Treat it as a relevance
-signal, NOT as a learning-quality signal. The bank has already been pre-filtered above a
-relevance floor; do not re-filter aggressively on this score alone.
+This is a Qdrant cosine similarity from a topic-aware retrieval, pre-filtered above a
+relevance floor. Use it as ONE input to your judgment, not as a gate.
+
+The relevance decision is YOURS to make from three signals together:
+  (a) `subject` of the bank vs the question's apparent subject
+  (b) `topic` of the bank vs the concept the question's text is actually testing
+  (c) the actual `question_text` and `options` — read them and judge whether mastering
+      this item helps a learner master "{topic}" within "{subject}"
+Do not defer to similarity_score alone in either direction. A high score can still be
+off-topic (lexical match without conceptual fit); a moderate score can still be on-topic.
 
 ═══════════════════════════════════════════════
 SELECTION POLICY  (DEFAULT ACTION = INCLUDE)
@@ -375,29 +382,67 @@ A question may be DROPPED ONLY if it triggers AT LEAST ONE explicit, named crite
 below. For every drop you make, you must internally pair the question with the exact
 criterion code (C1–C5). If no criterion applies, you MUST INCLUDE the question.
 
-ALLOWED DROP CRITERIA — exhaustive list, no others are valid:
-  C1  OFF_SUBJECT
-      The question's subject is unambiguously outside "{subject}".
-  C2  OFF_TOPIC
-      The question is unrelated to "{topic}" AND has similarity_score below 0.55.
-      (Both conditions must hold. Low score alone is NOT sufficient.)
-  C3  EXACT_DUPLICATE
-      Another retained question tests the SAME concept at the SAME difficulty and
-      would be redundant. When in doubt, KEEP both — varied phrasings aid retention.
-  C4  LANGUAGE_BROKEN
-      Question text is corrupted, truncated, or unparseable as natural language.
-  C5  MISSING_OPTIONS
-      `options` is empty/null OR `correct_index` is < 0.
+ALLOWED DROP CRITERIA — exhaustive list, no others are valid. EVERY drop must be
+listed in the output `dropped_questions` array with its code and a one-sentence reason.
 
-DROPS THAT ARE NEVER ALLOWED:
+  C1  OFF_SUBJECT
+      After reading the question text, you judge the item belongs to a subject other
+      than "{subject}" (e.g. a Biology item in a Mathematics bank). Reason must name
+      the subject the question actually belongs to.
+  C2  OFF_TOPIC
+      After reading subject, topic, AND the actual question_text + options, you judge
+      that mastering this item does NOT meaningfully help a learner master "{topic}"
+      within "{subject}". Score is informational only — do not cite "low score" as
+      the reason; cite WHAT concept the question tests and WHY that concept is outside
+      "{topic}". Apply this strictly: if the concept is adjacent or foundational to
+      "{topic}", KEEP it.
+  C3  NEAR_VERBATIM_DUPLICATE
+      Another retained question has NEARLY IDENTICAL wording (>90% word overlap) AND
+      identical options. Conceptual overlap alone is NOT enough — varied phrasings
+      of the same concept aid retention and MUST be kept.
+  C4  UNUSABLE_TEXT
+      `text` field is empty, null, or so corrupted that the question cannot be
+      understood as a question by a competent reader.
+  C5  UNUSABLE_ANSWER_KEY
+      `options` is empty/null or has fewer than 2 entries, OR `correct_index` is
+      null / < 0 / out of range for the options array.
+
+DROPS THAT ARE NEVER ALLOWED — these are NOT valid reasons to drop a question:
+- `difficulty` is null, missing, or "unknown" — difficulty is OPTIONAL metadata.
+  Default any missing difficulty to "medium" and keep the question.
+- `topic` is null, missing, or generic — infer a micro-topic from the text.
+- `explanation` is null or missing — explanation is OPTIONAL metadata.
+- `source`, `subject`, or any other metadata field is null or missing.
 - "Too easy" or "too hard" — solved by ordering, not removal.
 - "similarity_score is low" alone — must combine with C2.
 - "Output is getting long" — block count is dynamic; retain everything valid.
 - Any subjective preference, style, or aesthetic judgment.
 
-RETENTION FLOOR: at least 80% of input questions MUST appear in the final blocks
-unless C1, C4, or C5 forced removals beyond that share. If you fall below 80% you
-must reconsider your drops and add borderline cases back.
+ACCOUNTABILITY + RETENTION CONTRACT:
+Let N = total questions in the input bank.
+Let K = number of question_ids that appear in `blocks[*].questions[*]`.
+Let D = number of question_ids that appear in `dropped_questions`.
+
+HARD RULES (must hold or output is invalid):
+  H1. EVERY input question_id MUST appear in EXACTLY ONE of `blocks` or
+      `dropped_questions`. Silent drops are forbidden — no input ID may vanish
+      without an explicit entry in `dropped_questions`.
+  H2. K + D == N (every input is accounted for).
+  H3. Hard retention floor: K >= ceil(N * 0.70). If you fall below this, you have
+      over-dropped on judgment calls — re-examine your C2 and C3 decisions and
+      restore borderline items.
+
+SOFT TARGET: aim for K >= ceil(N * 0.85). It is acceptable to drop below 85%
+ONLY when you can justify each drop with a clear C1/C2/C4/C5 reason. Quality
+is the goal; high retention is preferred when quality is not compromised.
+
+Self-audit BEFORE emitting JSON:
+  1. Count N (input bank size).
+  2. Count K (blocks) and D (dropped_questions). Verify K + D == N.
+  3. Review every dropped item: can you write a one-sentence reason that
+     references the question_text and topic? If not, restore it.
+  4. If K / N < 0.70, you have over-curated — restore borderline items until
+     you are at or above 70%.
 
 ═══════════════════════════════════════════════
 ORDERING POLICY  (BLOOM'S TAXONOMY + COGNITIVE SCAFFOLDING)
@@ -435,12 +480,14 @@ ORDERING RULES (apply in priority order):
      If a micro-topic has only one question, attach it to the closest block by
      Bloom's level and conceptual proximity. Do NOT create singleton blocks.
 
-BLOCK SIZING (dynamic, emerges from data):
+BLOCK SIZING (dynamic, emerges from data — driven by retention contract):
 - Block count is determined by the natural cluster structure of micro-topics × Bloom's
   levels. Do NOT pad to a target count. Do NOT trim to a target count.
 - Each block contains 2–8 questions.
-- Total blocks across the roadmap should typically fall between 4 and 10 for a 30-item
-  bank, but may be more or fewer if the data dictates.
+- Total blocks scale with input size. Rough guide: ceil(K / 6) blocks where K is the
+  retained question count. For an input of 40+ questions expect 7–12 blocks, not 5–6.
+- If you find yourself producing 5–6 blocks of 2 questions each from a 30+ question
+  bank, you are under-retaining — revisit your drops.
 
 ═══════════════════════════════════════════════
 LEARNING-OBJECTIVE WRITING
@@ -493,8 +540,18 @@ OUTPUT FORMAT  (this exact schema, this exact key order)
       ]
     }}
   ],
+  "dropped_questions": [
+    {{
+      "question_id": "<existing_id_from_input>",
+      "criterion_code": "<one of: C1 | C2 | C3 | C4 | C5>",
+      "reason": "<one sentence citing what the question tests and why it was dropped>"
+    }}
+  ],
   "learning_tips": "1–2 short, motivating, evidence-grounded study tips relevant to the user's profile."
 }}
+
+`dropped_questions` MUST be present. It is `[]` when nothing was dropped, otherwise
+it contains an entry for every input ID not placed in blocks. K + D must equal N.
 
 OUTPUT ONLY THE JSON OBJECT.
 """
@@ -666,6 +723,79 @@ return {1, current + 1}
 
 ROADMAP_QUEUE = 'ROADMAP_QUEUE'
 ROADMAP_PROCESS_URL = 'ROADMAP_PROCESS_URL'
+
+SESSION_PLAN_PROMPT = """You are a generalist educator with deep expertise in pedagogical frameworks and the neuroscience of learning. Your role is to design optimal daily study sessions that are personalised, evidence-based, and cognitively efficient.
+
+You apply principles from spaced repetition, interleaved practice, and Bloom's taxonomy. You understand:
+- Weak foundational recall blocks progress at higher cognitive levels — fix the base first
+- Mastered recall-level concepts should be challenged with higher-order thinking (application, analysis, evaluation) — not abandoned
+- New concepts introduced at the right moment, with the right cognitive load, prevent frustration
+- Short daily sessions with deliberate focus outperform long unfocused ones
+
+OUTPUT ONLY VALID JSON. No markdown. No explanation. No extra text before or after.
+
+STUDENT CONTEXT
+Subject: {subject}
+Overall accuracy across all topics: {overall_accuracy}%
+
+TOPIC MASTERY DATA
+{topics_json}
+
+Topic type definitions:
+- "new"      : fewer than 3 attempts — student has not yet engaged with this topic
+- "weakness" : accuracy < 65% — student struggles here, needs reinforcement
+- "review"   : accuracy 65–79% — student understands but needs consolidation
+- "mastered" : accuracy ≥ 80% with ≥ 5 attempts — student has achieved recall mastery
+
+BLOOM'S TAXONOMY PROGRESSION RULE
+When a topic is "mastered" at recall/comprehension level, do NOT skip it.
+Promote it to type "advance" with difficulty "hard" — challenge the student to apply, analyse, and evaluate, not just remember.
+Only omit a mastered topic if including it would exceed 4 focus areas or if the session's overall level makes it clearly inappropriate.
+
+SESSION DESIGN RULES
+- Select 3–4 focus areas for a 20–25 minute session
+- Priority order: weakness FIRST, then new, then review, then advance
+- weakness → questionCount: 8, difficulty: "mixed"
+- new      → questionCount: 6, difficulty: "easy"
+- review   → questionCount: 5, difficulty: "medium"
+- advance  → questionCount: 4, difficulty: "hard"
+- topicHeadline: max 60 characters — specific and motivating. Reference the student's data.
+  Examples: "Plug your gaps in Virtual Memory Paging" / "Take Page Replacement to the next level"
+- reason: max 150 characters — data-grounded. Cite accuracy and attempt count.
+  Examples: "43% on 7 attempts — you grasp the concept but lose marks on edge cases."
+
+OUTPUT FORMAT — exactly this structure, no extra keys:
+{{
+  "focusAreas": [
+    {{
+      "topic": "<exact topic name from the input data>",
+      "type": "<weakness|new|review|advance>",
+      "questionCount": <int>,
+      "difficulty": "<easy|medium|mixed|hard>",
+      "topicHeadline": "<max 60 chars>",
+      "reason": "<max 150 chars>"
+    }}
+  ]
+}}
+
+OUTPUT ONLY THE JSON OBJECT."""
+
+# Canonical topic lists per subject.
+# Used as a seed for new users who have zero answer history — without this,
+# day-1 sessions would have nothing to plan against.
+SUBJECT_TOPICS: dict[str, list[str]] = {
+    "Operating Systems": [
+        "Process Management",
+        "Memory Management",
+        "Concurrency and Synchronization",
+        "File Systems",
+        "I/O Systems and Device Management",
+        "Protection and Security",
+        "Virtualization",
+        "Networking",
+    ],
+}
+
 MAX_ROADMAPS_PER_WINDOW = 3
 WINDOW = 86400
 HEATMAP_DAYS=30

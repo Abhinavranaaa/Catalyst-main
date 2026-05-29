@@ -235,6 +235,47 @@ def _format_results(results, question_metadata: Dict[str, Question]) -> List[Dic
 
 
 
+RETENTION_HARD_FLOOR = 0.70  # below this, retry — likely over-curation
+RETENTION_SOFT_TARGET = 0.85  # aspirational; sub-target is fine if drops are reasoned
+
+
+def _count_retained_ids(roadmap: Dict[str, Any]) -> set:
+    retained = set()
+    for block in roadmap.get("blocks", []) or []:
+        for q in block.get("questions", []) or []:
+            qid = q.get("question_id")
+            if qid:
+                retained.add(str(qid))
+    return retained
+
+
+def _explained_drop_ids(roadmap: Dict[str, Any]) -> set:
+    """IDs the LLM justified dropping in `dropped_questions`."""
+    explained = set()
+    for entry in roadmap.get("dropped_questions", []) or []:
+        qid = entry.get("question_id")
+        reason = (entry.get("reason") or "").strip()
+        code = (entry.get("criterion_code") or "").strip().upper()
+        if qid and reason and code in {"C1", "C2", "C3", "C4", "C5"}:
+            explained.add(str(qid))
+    return explained
+
+
+def _invoke_llm(llm, prompt_text: str) -> tuple[str, dict]:
+    start = time.time()
+    response = llm.invoke([HumanMessage(content=prompt_text)])
+    latency = time.time() - start
+    usage = response.response_metadata.get("token_usage", {}) or {}
+    logger.info(
+        f"LLM | model={ROADMAP_MODEL} | "
+        f"prompt={usage.get('prompt_tokens', 0)} | "
+        f"completion={usage.get('completion_tokens', 0)} | "
+        f"total={usage.get('total_tokens', 0)} | "
+        f"latency={latency:.3f}s"
+    )
+    return remove_think_blocks(response.content), usage
+
+
 def generate_roadmap_blocks(
     llm,
     user_profile: str,
@@ -245,26 +286,31 @@ def generate_roadmap_blocks(
 ) -> Dict[str, Any]:
     """
     Uses LLM to dynamically group, filter, and order questions into a personalized learning roadmap.
-    The prompt explicitly instructs the model to use the user profile for question synthesis and selection.
+    The LLM judges each question on subject/topic/text and emits reasoned drops; this function
+    accepts those reasoned drops and only retries when drops are silent or retention is below 70%.
     """
-    # Prepare question summaries with options
     questions_summary = [
         {
             "id": q["id"],
             "text": (q["text"][:200] + "...") if len(q["text"]) > 200 else q["text"],
-            "difficulty": q.get("difficulty", "medium"),
-            "topic": q.get("topic", "general"),
-            "options": q.get("options", []),
+            "difficulty": q.get("difficulty") or "medium",
+            "topic": q.get("topic") or "general",
+            "options": q.get("options") or [],
             "similarity_score": round(q.get("similarity_score", 0.0), 3),
             "correct_index": q.get("correct_index", -1)
         }
         for q in questions
     ]
-    logger.info(f"Sending {len(questions_summary)} questions to LLM for roadmap construction.")
+    input_ids = {str(q["id"]) for q in questions_summary}
+    n_input = len(input_ids)
+    hard_floor = max(1, -(-n_input * 7 // 10))   # ceil(N * 0.70)
+    soft_target = max(1, -(-n_input * 17 // 20))  # ceil(N * 0.85)
+    logger.info(
+        f"Sending {n_input} questions to LLM | hard_floor={hard_floor} ({RETENTION_HARD_FLOOR:.0%}) "
+        f"| soft_target={soft_target} ({RETENTION_SOFT_TARGET:.0%})"
+    )
 
-    # Explicit prompt with clear instructions on using user profile for selection and grouping
-    template = PROMPT_TEMPLATE_V4
-    prompt = PromptTemplate.from_template(template)
+    prompt = PromptTemplate.from_template(PROMPT_TEMPLATE_V4)
 
     try:
         formatted_prompt = prompt.format(
@@ -275,37 +321,85 @@ def generate_roadmap_blocks(
             questions_data=json.dumps(questions_summary, indent=2)
         )
 
-        start = time.time()
-
-        response = llm.invoke([
-            HumanMessage(content=formatted_prompt)
-        ])
-
-        end = time.time()
-        latency = end - start
-
-        response_text = remove_think_blocks(response.content)
-
-        # ✅ Proper token extraction
-        usage = response.response_metadata.get("token_usage", {})
-
-        prompt_tokens = usage.get("prompt_tokens", 0)
-        completion_tokens = usage.get("completion_tokens", 0)
-        total_tokens = usage.get("total_tokens", 0)
-
-        logger.info(
-            f"LLM | model={ROADMAP_MODEL} | "
-            f"prompt={prompt_tokens} | "
-            f"completion={completion_tokens} | "
-            f"total={total_tokens} | "
-            f"latency={latency:.3f}s"
-        )
-
+        response_text, _ = _invoke_llm(llm, formatted_prompt)
         roadmap = parse_llm_response_to_json(response_text, debug_log=logger.debug)
 
         if not roadmap:
             logger.error("Roadmap output could not be parsed even after fallback.")
             return create_fallback_roadmap(questions)
+
+        retained = _count_retained_ids(roadmap)
+        unknown = retained - input_ids
+        if unknown:
+            logger.warning(f"LLM emitted {len(unknown)} ids not in input bank: {sorted(unknown)[:5]}...")
+
+        valid_retained = retained & input_ids
+        explained_drops = _explained_drop_ids(roadmap) & input_ids
+        silent_drops = input_ids - valid_retained - explained_drops
+        retention_rate = len(valid_retained) / n_input if n_input else 1.0
+
+        logger.info(
+            f"Retention: kept={len(valid_retained)} explained_drops={len(explained_drops)} "
+            f"silent_drops={len(silent_drops)} rate={retention_rate:.0%} "
+            f"blocks={len(roadmap.get('blocks', []))}"
+        )
+
+        needs_retry = bool(silent_drops) or len(valid_retained) < hard_floor
+        if needs_retry:
+            ids_to_recover = sorted(silent_drops)
+            reason = []
+            if silent_drops:
+                reason.append(
+                    f"{len(silent_drops)} input IDs are missing from BOTH blocks and "
+                    f"dropped_questions (silent drops are forbidden)"
+                )
+            if len(valid_retained) < hard_floor:
+                reason.append(
+                    f"retention {retention_rate:.0%} is below the {RETENTION_HARD_FLOOR:.0%} hard floor"
+                )
+                # When below hard floor, also pull in IDs the LLM dropped with C2/C3
+                # (the judgment-call criteria) for reconsideration.
+                weak_drops = {
+                    str(e.get("question_id"))
+                    for e in roadmap.get("dropped_questions", []) or []
+                    if (e.get("criterion_code") or "").upper() in {"C2", "C3"}
+                }
+                ids_to_recover = sorted(set(ids_to_recover) | (weak_drops & input_ids))
+            logger.warning(f"Retrying once: {'; '.join(reason)}")
+
+            retry_prompt = (
+                formatted_prompt
+                + "\n\n═══════════════════════════════════════════════\n"
+                + "CORRECTIVE RETRY — PRIOR ATTEMPT FAILED ACCOUNTABILITY\n"
+                + "═══════════════════════════════════════════════\n"
+                + f"Issue(s): {'; '.join(reason)}.\n\n"
+                + "The following input IDs were dropped without sufficient justification. "
+                + "Re-read each question's text against subject and topic, then either:\n"
+                + "  (a) place it in the most appropriate block, OR\n"
+                + "  (b) include it in `dropped_questions` with criterion_code C1/C2/C4/C5 "
+                + "and a one-sentence reason that cites the question text.\n"
+                + "Do NOT use C3 unless you can point to a near-verbatim retained twin.\n\n"
+                + "IDs to reconsider:\n"
+                + json.dumps(ids_to_recover, indent=2)
+                + "\n\nRe-emit the COMPLETE roadmap JSON. Every input ID must appear in "
+                + "exactly one of `blocks` or `dropped_questions`. Output ONLY the JSON object."
+            )
+            retry_text, _ = _invoke_llm(llm, retry_prompt)
+            retry_roadmap = parse_llm_response_to_json(retry_text, debug_log=logger.debug)
+            if retry_roadmap:
+                retry_retained = _count_retained_ids(retry_roadmap) & input_ids
+                retry_explained = _explained_drop_ids(retry_roadmap) & input_ids
+                retry_silent = input_ids - retry_retained - retry_explained
+                logger.info(
+                    f"Retry: kept={len(retry_retained)} explained={len(retry_explained)} "
+                    f"silent={len(retry_silent)} rate={len(retry_retained) / n_input:.0%}"
+                )
+                # Accept retry if it improves either retention or accountability
+                if (len(retry_retained) > len(valid_retained)
+                        or len(retry_silent) < len(silent_drops)):
+                    roadmap = retry_roadmap
+            else:
+                logger.warning("Corrective retry failed to parse; using original roadmap.")
 
         return roadmap
 
@@ -395,7 +489,12 @@ def parse_llm_response_to_json(response: Union[str, dict], debug_log: Optional[c
                 debug_log(f"Fallback ast.literal_eval failed: {e2}")
 
     return None
-        
+
+
+def _attachments_for_question(question: Question) -> list:
+    return [att.to_display_dict() for att in question.attachments.all()]
+
+
 def reshape_roadmap_for_response(raw_roadmap: dict,questions: Dict[str, Question]) -> dict:
     """
     Convert internal roadmap representation to the expected JSON response format,
@@ -455,6 +554,7 @@ def reshape_roadmap_for_response(raw_roadmap: dict,questions: Dict[str, Question
                 "snippet_language": ques.snippet_language,
                 "snippet_body": ques.snippet_body,
                 "snippet_line_range": ques.snippet_line_range,
+                "attachments": _attachments_for_question(ques),
                 }
             else: 
                 logger.warning("No relevant questions found. skipping the q_id due to invalid q_id")

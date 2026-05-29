@@ -2,7 +2,7 @@
 import uuid
 from django.db import models
 from users.models import User
-from roadmap.models import Roadmap
+from roadmap.models import Roadmap, DailySession
 from question.models import Question
 
 
@@ -10,6 +10,7 @@ class Answer(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(User, on_delete=models.DO_NOTHING, blank=True, null=True)
     roadmap = models.ForeignKey(Roadmap, on_delete=models.DO_NOTHING, blank=True, null=True)
+    daily_session = models.ForeignKey(DailySession, on_delete=models.DO_NOTHING, blank=True, null=True)
     question = models.ForeignKey(Question, on_delete=models.DO_NOTHING, blank=True, null=True)
     selected_index = models.IntegerField()
     is_correct = models.BooleanField(blank=True, null=True)

@@ -1,2 +1,23 @@
 *.env
 *.pyc
+.DS_Store
+
+# Python virtual environments
+venv/
+venv_py311/
+.venv/
+env/
+
+# PyCharm / IntelliJ
+.idea/
+
+# Python cache
+__pycache__/
+*.pyo
+*.pyd
+
+# Django
+*.log
+
+# Node / JS (if ever added)
+node_modules/

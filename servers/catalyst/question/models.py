@@ -150,3 +150,53 @@ class Question(models.Model):
         db_table = 'questions'
         verbose_name = "Question"
         verbose_name_plural = "Questions"
+
+
+class AttachmentType(models.TextChoices):
+    IMAGE = "image", "Image"
+    CODE = "code", "Code File"
+    PDF = "pdf", "PDF"
+    TEXT = "text", "Plain Text / Markdown"
+    AUDIO = "audio", "Audio"
+    VIDEO = "video", "Video"
+
+
+class QuestionAttachment(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    question = models.ForeignKey(
+        Question,
+        on_delete=models.CASCADE,
+        related_name="attachments",
+    )
+    attachment_type = models.CharField(
+        max_length=20,
+        choices=AttachmentType.choices,
+    )
+    file = models.FileField(
+        upload_to="question_attachments/%Y/%m/",
+        blank=True,
+        null=True,
+    )
+    inline_content = models.TextField(blank=True, null=True)
+    metadata = models.JSONField(default=dict, blank=True)
+    order = models.PositiveSmallIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "question_attachments"
+        ordering = ["order", "created_at"]
+        verbose_name = "Question Attachment"
+        verbose_name_plural = "Question Attachments"
+
+    def __str__(self):
+        return f"[{self.attachment_type}] → Q:{self.question_id}"
+
+    def to_display_dict(self) -> dict:
+        return {
+            "id": str(self.id),
+            "type": self.attachment_type,
+            "url": self.file.url if self.file else None,
+            "content": self.inline_content,
+            "metadata": self.metadata,
+            "order": self.order,
+        }
