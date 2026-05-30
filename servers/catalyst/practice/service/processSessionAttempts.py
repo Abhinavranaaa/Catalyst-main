@@ -2,7 +2,7 @@ import logging
 from django.db import transaction
 from django.utils import timezone
 
-from practice.models import Answer
+from practice.models import Answer, SessionAttempt
 from practice.service.sessionTopicAccuracy import invalidate_session_topic_accuracy
 from question.models import Question
 from roadmap.models import DailySession
@@ -19,77 +19,223 @@ _analytics = AnalyticsCoordinator(
     DashBoardCacheService(WINDOW),
 )
 
+_MAX_TAP_MS = 120_000
 
-def process_session_attempts(user_id: int, session_id: str, attempts: list[dict]) -> dict:
+
+# ── State transition table ────────────────────────────────────────────────────
+
+def _new_state(previous_state: str, accuracy: float) -> str:
     """
-    Validates and stores answers for a daily session, updates analytics
-    (streak + heatmap), marks the session complete, and invalidates the
-    session topic accuracy cache.
-
-    Returns {"accuracy": int, "questionsAnswered": int}.
+    Apply the DS-009 topic state transition table.
+    accuracy is a float 0.0–1.0 representing answered-only questions.
     """
-    session = DailySession.objects.get(session_id=session_id, user_id=user_id)
+    if previous_state == "review":
+        return "mastered" if accuracy >= 0.80 else "review"
+    # weakness or new
+    if accuracy >= 0.80:
+        return "mastered"
+    if accuracy >= 0.50:
+        return "review"
+    return "weakness"
 
-    # Build a set of question IDs that belong to this session from the payload
+
+# ── Custom exceptions (caught in the view) ────────────────────────────────────
+
+class SessionNotFound(Exception):
+    pass
+
+
+class SessionForbidden(Exception):
+    pass
+
+
+class SessionAlreadySubmitted(Exception):
+    pass
+
+
+class UnknownQuestionId(Exception):
+    def __init__(self, question_id: str):
+        self.question_id = question_id
+        super().__init__(f"question_id {question_id} not in session payload")
+
+
+# ── Main entry point ──────────────────────────────────────────────────────────
+
+def process_session_attempts(
+    user_id: int,
+    session_id: str,
+    session_started_at,
+    focus_area_attempts: list[dict],
+) -> dict:
+    """
+    DS-009 submit pipeline. Steps match the spec exactly:
+    1  Validate session ownership
+    2  Idempotency check
+    3  Validate question IDs against payload
+    4  Recompute correctness server-side
+    5  Per-topic accuracy
+    6  Topic state transitions
+    7  Bulk insert SessionAttempt + Answer rows
+    8  Mark session complete
+    9  Invalidate Redis accuracy cache   (outside transaction)
+    10 Build and return summary response
+    """
+    # Step 1 — ownership
+    try:
+        session = DailySession.objects.get(session_id=session_id)
+    except DailySession.DoesNotExist:
+        raise SessionNotFound()
+
+    if str(session.user_id) != str(user_id):
+        raise SessionForbidden()
+
+    # Step 2 — idempotency
+    if session.completed_at is not None:
+        raise SessionAlreadySubmitted()
+
+    # Step 3 — build valid question ID set from payload (no extra DB query)
     valid_question_ids: set[str] = set()
     for area in session.payload_json.get("focusAreas", []):
         for q in area.get("questions", []):
             valid_question_ids.add(str(q["id"]))
 
-    incoming_ids = [str(a["question_id"]) for a in attempts]
-    db_questions = {
+    # Flatten all attempts across focus areas; validate IDs
+    flat: list[dict] = []
+    for area in focus_area_attempts:
+        for attempt in area["attempts"]:
+            qid = str(attempt["question_id"])
+            if qid not in valid_question_ids:
+                raise UnknownQuestionId(qid)
+            flat.append({**attempt, "topic_name": area["topic_name"], "topic_type": area["topic_type"]})
+
+    # Step 4 — fetch correct_index from DB for server-side recomputation
+    incoming_ids = [a["question_id"] for a in flat]
+    db_questions: dict[str, Question] = {
         str(q.id): q
-        for q in Question.objects.filter(id__in=incoming_ids)
-        .only("id", "correct_index", "difficulty", "bloom_level")
+        for q in Question.objects.filter(id__in=incoming_ids).only("id", "correct_index")
     }
 
-    answer_rows: list[Answer] = []
-    for attempt in attempts:
-        qid = str(attempt["question_id"])
-        if qid not in valid_question_ids:
-            logger.warning(
-                "question_id %s not in session %s — skipped", qid, session_id
-            )
-            continue
-        q = db_questions.get(qid)
-        if not q:
-            logger.warning("question_id %s not found in DB — skipped", qid)
-            continue
+    # Step 5 — compute per-topic accuracy (answered only, skips excluded)
+    topic_stats: dict[str, dict] = {}
+    for area in focus_area_attempts:
+        topic_stats[area["topic_name"]] = {
+            "topic_type": area["topic_type"],
+            "correct": 0,
+            "answered": 0,
+        }
 
-        answer_rows.append(
-            Answer(
+    session_attempt_rows: list[SessionAttempt] = []
+    answer_rows: list[Answer] = []
+
+    for attempt in flat:
+        qid = str(attempt["question_id"])
+        q = db_questions.get(qid)
+        selected = attempt.get("selected_index")
+        skipped = selected is None
+
+        # Server-side correctness
+        is_correct = None if skipped else (selected == q.correct_index)
+
+        # Clamp tap time
+        tap_ms = attempt.get("time_to_first_tap_ms")
+        if tap_ms is not None and tap_ms > _MAX_TAP_MS:
+            tap_ms = _MAX_TAP_MS
+
+        session_attempt_rows.append(SessionAttempt(
+            session=session,
+            user_id=user_id,
+            question=q,
+            topic_name=attempt["topic_name"],
+            topic_type=attempt["topic_type"],
+            selected_index=selected,
+            is_correct=is_correct,
+            time_to_first_tap_ms=tap_ms,
+            answer_changed=attempt.get("answer_changed", False),
+            bloom_level=attempt.get("bloom_level"),
+            difficulty=attempt.get("difficulty"),
+            sequence_position=attempt.get("sequence_position"),
+            skipped=skipped,
+        ))
+
+        # Only non-skipped attempts go into the Answer table (selected_index is non-nullable there)
+        # TODO: migrate analytics to SessionAttempt, then remove Answer write
+        if not skipped:
+            answer_rows.append(Answer(
                 user_id=user_id,
                 daily_session=session,
                 question=q,
-                selected_index=attempt["selected_index"],
-                is_correct=attempt["selected_index"] == q.correct_index,
-                time_taken_seconds=attempt.get("time_taken_seconds"),
-            )
-        )
+                selected_index=selected,
+                is_correct=is_correct,
+                time_taken_seconds=tap_ms // 1000 if tap_ms is not None else None,
+            ))
+            stats = topic_stats[attempt["topic_name"]]
+            stats["answered"] += 1
+            if is_correct:
+                stats["correct"] += 1
 
+    # Step 6 — state transitions
+    topic_results = []
+    for topic_name, stats in topic_stats.items():
+        answered = stats["answered"]
+        accuracy = (stats["correct"] / answered) if answered > 0 else 0.0
+        previous_state = stats["topic_type"]
+        updated_state = _new_state(previous_state, accuracy)
+        topic_results.append({
+            "topic_name": topic_name,
+            "correct": stats["correct"],
+            "total": answered,
+            "accuracy": round(accuracy, 3),
+            "previous_state": previous_state,
+            "updated_state": updated_state,
+        })
+
+    # Step 7 — bulk insert inside transaction
+    now = timezone.now()
     with transaction.atomic():
-        Answer.objects.bulk_create(answer_rows, batch_size=500)
+        SessionAttempt.objects.bulk_create(session_attempt_rows, batch_size=500)
+        if answer_rows:
+            Answer.objects.bulk_create(answer_rows, batch_size=500)
 
-    # Update streak + heatmap via the same analytics pipeline used by roadmaps
+        # Step 8 — mark session complete
+        answered_total = sum(s["answered"] for s in topic_stats.values())
+        correct_total = sum(s["correct"] for s in topic_stats.values())
+        overall_accuracy = round(correct_total / answered_total * 100) if answered_total else 0
+
+        session.is_completed = True
+        session.completed_at = now
+        session.session_started_at = session_started_at
+        session.completion_accuracy = overall_accuracy
+        session.completion_questions = answered_total
+        session.save(update_fields=[
+            "is_completed", "completed_at", "session_started_at",
+            "completion_accuracy", "completion_questions",
+        ])
+
+    # Analytics (streak + heatmap) — uses Answer rows for continuity
     if answer_rows:
         _analytics.process_attempt(user_id, answer_rows)
 
-    total = len(answer_rows)
-    correct = sum(1 for a in answer_rows if a.is_correct)
-    accuracy = round(correct / total * 100) if total else 0
-
-    session.is_completed = True
-    session.completed_at = timezone.now()
-    session.completion_accuracy = accuracy
-    session.completion_questions = total
-    session.save(update_fields=[
-        "is_completed", "completed_at", "completion_accuracy", "completion_questions"
-    ])
-
+    # Step 9 — invalidate Redis cache outside the transaction
     invalidate_session_topic_accuracy(user_id, session.subject)
 
+    # Step 10 — build response
+    total_questions = len(flat)
+    duration_seconds = int((now - session_started_at).total_seconds()) if session_started_at else None
+
     logger.info(
-        "Session %s submitted: user=%s total=%d correct=%d accuracy=%d%%",
-        session_id, user_id, total, correct, accuracy,
+        "Session %s submitted: user=%s total=%d answered=%d correct=%d accuracy=%d%%",
+        session_id, user_id, total_questions, answered_total, correct_total, overall_accuracy,
     )
-    return {"accuracy": accuracy, "questionsAnswered": total}
+
+    return {
+        "status": "submitted",
+        "session_id": str(session.session_id),
+        "summary": {
+            "total_questions": total_questions,
+            "answered": answered_total,
+            "correct": correct_total,
+            "accuracy_rate": round(correct_total / answered_total, 3) if answered_total else 0,
+            "session_duration_seconds": duration_seconds,
+            "topics": topic_results,
+        },
+    }

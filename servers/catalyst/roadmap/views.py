@@ -8,7 +8,14 @@ from rest_framework import status
 from roadmap.service.generate import generate_roadmap_json,fetchRoadmapJson,fetchRoadmapJob
 from roadmap.service.dailySessionGenerator import generate_daily_session
 from roadmap.models import Roadmap, DailySession
-from practice.service.processSessionAttempts import process_session_attempts
+from practice.service.processSessionAttempts import (
+    process_session_attempts,
+    SessionNotFound,
+    SessionForbidden,
+    SessionAlreadySubmitted,
+    UnknownQuestionId,
+)
+from practice.serializers import SessionSubmitSerializer
 from roadmap.serializers import GenerateRoadmapRequestSerializer, GetRoadmapRequestSerializer, GetJobRequestSerializer
 import logging
 from notifications.tasks import process_user_interests_async
@@ -218,23 +225,37 @@ def get_session_questions(request, session_id):
 @api_view(['POST'])
 def submit_session(request, session_id):
     """
-    Submit all answers for a daily session.
+    Submit all answers for a daily session (DS-009).
 
-    Body: { "attempts": [{"question_id": str, "selected_index": int, "time_taken_seconds": int|null}] }
+    Body: SessionSubmitSerializer shape — focus_area_attempts grouped by topic.
     """
-    attempts = request.data.get("attempts")
-    if not attempts or not isinstance(attempts, list):
-        return Response({"error": "attempts list is required"}, status=status.HTTP_400_BAD_REQUEST)
+    serializer = SessionSubmitSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    data = serializer.validated_data
     try:
         result = process_session_attempts(
             user_id=request.user.id,
             session_id=str(session_id),
-            attempts=attempts,
+            session_started_at=data["session_started_at"],
+            focus_area_attempts=data["focus_area_attempts"],
         )
         return Response(result, status=status.HTTP_200_OK)
-    except DailySession.DoesNotExist:
+    except SessionNotFound:
         return Response({"error": "Session not found"}, status=status.HTTP_404_NOT_FOUND)
+    except SessionForbidden:
+        return Response({"error": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
+    except SessionAlreadySubmitted:
+        return Response(
+            {"status": "already_submitted", "session_id": str(session_id)},
+            status=status.HTTP_409_CONFLICT,
+        )
+    except UnknownQuestionId as e:
+        return Response(
+            {"error": f"Unknown question_id: {e.question_id}"},
+            status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        )
     except Exception:
         logger.exception("Failed to submit session attempts")
         return Response(
