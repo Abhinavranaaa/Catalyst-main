@@ -76,6 +76,7 @@ class DailySession(models.Model):
     is_completed = models.BooleanField(default=False)
     generated_at = models.DateTimeField(auto_now_add=True)
     completed_at = models.DateTimeField(null=True, blank=True)
+    session_started_at = models.DateTimeField(null=True, blank=True)
     completion_accuracy = models.IntegerField(null=True, blank=True)
     completion_questions = models.IntegerField(null=True, blank=True)
 
