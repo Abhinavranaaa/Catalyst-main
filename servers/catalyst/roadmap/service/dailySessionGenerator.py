@@ -66,6 +66,13 @@ _DIFFICULTY_RANGES = {
     "advance":  {4, 5},          # hard questions only — Bloom's progression
 }
 
+_BLOOM_RANGES = {
+    "new":      {1, 2, 3},           # Remember, Understand, Apply — build foundations
+    "weakness": {1, 2, 3},           # same — shore up basics before higher-order thinking
+    "review":   {2, 3, 4},           # Understand, Apply, Analyze — consolidate
+    "advance":  {4, 5, 6},           # Analyze, Evaluate, Create — push mastered topics
+}
+
 _DEFAULT_COUNTS = {"weakness": 8, "new": 6, "review": 5, "advance": 4}
 _DIFFICULTY_LABEL = {"new": "easy", "weakness": "mixed", "review": "medium", "advance": "hard"}
 
@@ -300,6 +307,7 @@ def _fetch_from_postgres(ids: list[str], area_type: str) -> list:
         return []
 
     allowed_difficulties = _DIFFICULTY_RANGES.get(area_type, {1, 2, 3, 4, 5})
+    allowed_blooms = _BLOOM_RANGES.get(area_type, {1, 2, 3, 4, 5, 6})
 
     qs = list(
         Question.objects
@@ -313,7 +321,11 @@ def _fetch_from_postgres(ids: list[str], area_type: str) -> list:
     id_order = {qid: idx for idx, qid in enumerate(ids)}
     qs.sort(key=lambda q: id_order.get(str(q.id), 9999))
 
-    return [q for q in qs if q.difficulty in allowed_difficulties]
+    return [
+        q for q in qs
+        if q.difficulty in allowed_difficulties
+        and (q.bloom_level is None or q.bloom_level in allowed_blooms)
+    ]
 
 
 def _fill_from_fallback(
@@ -328,16 +340,20 @@ def _fill_from_fallback(
         return existing
 
     allowed_difficulties = _DIFFICULTY_RANGES.get(area_type, {1, 2, 3, 4, 5})
+    allowed_blooms = _BLOOM_RANGES.get(area_type, {1, 2, 3, 4, 5, 6})
     all_exclude = exclude_ids | {str(q.id) for q in existing}
+
+    from django.db.models import Q
 
     extra = list(
         Question.objects
         .filter(
+            Q(bloom_level__isnull=True) | Q(bloom_level__in=allowed_blooms),
             subject=subject,
             difficulty__in=allowed_difficulties,
         )
         .exclude(id__in=all_exclude)
-        .order_by("difficulty")
+        .order_by("difficulty", "bloom_level")
         .only(
             "id", "text", "options", "correct_index", "difficulty",
             "explanation", "distractor_explanations", "bloom_level", "topic",

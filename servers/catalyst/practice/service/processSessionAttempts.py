@@ -3,7 +3,10 @@ from django.db import transaction
 from django.utils import timezone
 
 from practice.models import Answer, SessionAttempt
-from practice.service.sessionTopicAccuracy import invalidate_session_topic_accuracy
+from practice.service.sessionTopicAccuracy import (
+    invalidate_session_topic_accuracy,
+    get_session_topic_accuracy,
+)
 from question.models import Question
 from roadmap.models import DailySession
 from users.analytics.analyticsOrchestrator import AnalyticsCoordinator
@@ -20,23 +23,6 @@ _analytics = AnalyticsCoordinator(
 )
 
 _MAX_TAP_MS = 120_000
-
-
-# ── State transition table ────────────────────────────────────────────────────
-
-def _new_state(previous_state: str, accuracy: float) -> str:
-    """
-    Apply the DS-009 topic state transition table.
-    accuracy is a float 0.0–1.0 representing answered-only questions.
-    """
-    if previous_state == "review":
-        return "mastered" if accuracy >= 0.80 else "review"
-    # weakness or new
-    if accuracy >= 0.80:
-        return "mastered"
-    if accuracy >= 0.50:
-        return "review"
-    return "weakness"
 
 
 # ── Custom exceptions (caught in the view) ────────────────────────────────────
@@ -68,16 +54,16 @@ def process_session_attempts(
     focus_area_attempts: list[dict],
 ) -> dict:
     """
-    DS-009 submit pipeline. Steps match the spec exactly:
+    DS-009 submit pipeline:
     1  Validate session ownership
     2  Idempotency check
     3  Validate question IDs against payload
     4  Recompute correctness server-side
     5  Per-topic accuracy
-    6  Topic state transitions
-    7  Bulk insert SessionAttempt + Answer rows
-    8  Mark session complete
-    9  Invalidate Redis accuracy cache   (outside transaction)
+    6  Bulk insert SessionAttempt + Answer rows, mark session complete
+    7  Analytics
+    8  Invalidate Redis cache, fetch fresh topic classifications
+    9  Build topic results (updated_state matches next session's view)
     10 Build and return summary response
     """
     # Step 1 — ownership
@@ -173,30 +159,14 @@ def process_session_attempts(
             if is_correct:
                 stats["correct"] += 1
 
-    # Step 6 — state transitions
-    topic_results = []
-    for topic_name, stats in topic_stats.items():
-        answered = stats["answered"]
-        accuracy = (stats["correct"] / answered) if answered > 0 else 0.0
-        previous_state = stats["topic_type"]
-        updated_state = _new_state(previous_state, accuracy)
-        topic_results.append({
-            "topic_name": topic_name,
-            "correct": stats["correct"],
-            "total": answered,
-            "accuracy": round(accuracy, 3),
-            "previous_state": previous_state,
-            "updated_state": updated_state,
-        })
-
-    # Step 7 — bulk insert inside transaction
+    # Step 6 — bulk insert inside transaction (state transitions computed after DB commit)
     now = timezone.now()
     with transaction.atomic():
         SessionAttempt.objects.bulk_create(session_attempt_rows, batch_size=500)
         if answer_rows:
             Answer.objects.bulk_create(answer_rows, batch_size=500)
 
-        # Step 8 — mark session complete
+        # Mark session complete
         answered_total = sum(s["answered"] for s in topic_stats.values())
         correct_total = sum(s["correct"] for s in topic_stats.values())
         overall_accuracy = round(correct_total / answered_total * 100) if answered_total else 0
@@ -215,8 +185,24 @@ def process_session_attempts(
     if answer_rows:
         _analytics.process_attempt(user_id, answer_rows)
 
-    # Step 9 — invalidate Redis cache outside the transaction
+    # Step 8 — invalidate Redis cache, then fetch fresh classifications
     invalidate_session_topic_accuracy(user_id, session.subject)
+    fresh_accuracy = get_session_topic_accuracy(user_id, session.subject)
+    fresh_state_map = {t["topic"]: t["type"] for t in fresh_accuracy}
+
+    # Step 9 — build topic results using the real post-submit classification
+    topic_results = []
+    for topic_name, stats in topic_stats.items():
+        answered = stats["answered"]
+        accuracy = (stats["correct"] / answered) if answered > 0 else 0.0
+        topic_results.append({
+            "topic_name": topic_name,
+            "correct": stats["correct"],
+            "total": answered,
+            "accuracy": round(accuracy, 3),
+            "previous_state": stats["topic_type"],
+            "updated_state": fresh_state_map.get(topic_name, stats["topic_type"]),
+        })
 
     # Step 10 — build response
     total_questions = len(flat)
