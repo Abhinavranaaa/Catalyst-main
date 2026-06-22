@@ -8,6 +8,7 @@ from ..metrics import *
 from users.models import User
 from roadmap.models import Roadmap, RoadmapQuestion
 from roadmap.service.generate import sync_roadmap_json_with_question_status
+from .topicAccuracy import invalidate_topic_accuracy
 from users.analytics.analyticsOrchestrator import AnalyticsCoordinator
 from users.analytics.analyticsUserStats import AnalyticsUpdaterUserStats
 from users.analytics.analyticsDailyActivity import DailyStatsUpdater
@@ -37,6 +38,8 @@ def processAttempts(
         submitted_attempts = insertAttempts(user_id,roadmap,attempts,question_map)
         updateRoadmapQuestions(roadmap_questions=roadmap_questions,submitted_attempts=submitted_attempts)
         analytics.process_attempt(user_id,submitted_attempts)
+
+    invalidate_topic_accuracy(user_id, roadmap_id)
 
     
     roadmap_attempts = fetchRoadmapAttempts(roadmap_id)
