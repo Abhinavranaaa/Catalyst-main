@@ -17,10 +17,10 @@ logger = logging.getLogger(__name__)
 @permission_classes([AllowAny])
 def save_push_subscription(request):
     data = request.data
-    obj, _ = WebPushSubscription.objects.update_or_create(
-        user = request.user.id,
+    WebPushSubscription.objects.update_or_create(
         endpoint=data.get('endpoint'),
         defaults={
+            'user'  : request.user,
             'p256dh': data['keys']['p256dh'],
             'auth': data['keys']['auth'],
         }
