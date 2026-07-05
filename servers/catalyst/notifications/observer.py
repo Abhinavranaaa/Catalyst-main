@@ -64,11 +64,12 @@ class PushObserver(NotificationObserver):
                     },
                     ttl=3600,
                     data=json.dumps({
+                        "notification" :{
                         "version": 1,
-                        "type": "daily_notification",
+                        "data": {"url" : "/"},
                         "title": "Catalyst",
                         "body": message
-                        }),
+                        }}),
                     vapid_private_key=settings.VAPID_PRIVATE_KEY,
                     vapid_claims={"sub": "mailto:rmitu22@gmail.com","aud":get_audience(sub.endpoint)},
                 )
