@@ -75,7 +75,8 @@ INSTALLED_APPS = [
     'question',
     'practice',
     'dashboard',
-    'notifications'
+    'notifications',
+    'enrollments',
 ]
 
 MIDDLEWARE = [
@@ -174,11 +175,18 @@ CORS_ORIGIN_ALLOW_ALL = False
 CORS_ALLOWED_ORIGINS = [
     "https://catalyst-roadmap.vercel.app",
     "http://localhost:4200",
+    "http://localhost:4201",
     "https://catalystedutech.com",    
     "https://www.catalystedutech.com"
 
 ]
 CORS_ALLOW_CREDENTIALS = True
+
+CORS_ALLOW_HEADERS = [
+      'content-type',
+      'authorization',
+      'x-app-sec',
+  ]
 
 CSRF_COOKIE_SAMESITE = 'None'
 SESSION_COOKIE_SAMESITE = 'None'

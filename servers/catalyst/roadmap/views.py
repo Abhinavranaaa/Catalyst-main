@@ -23,6 +23,7 @@ from catalyst.constants import ADDITIONAL_COMMENTS, ROADMAP_ID
 import jwt
 from rest_framework.exceptions import AuthenticationFailed
 import time
+import concurrent.futures
 from .search.validator import QueryValidator
 from .search.parser import QueryParser
 from .search.query_builder import QueryBuilder
@@ -44,6 +45,10 @@ from rest_framework.permissions import AllowAny
 
 
 logger = logging.getLogger(__name__)
+
+# Sync generation timeout — tune once p95 LLM latency is observable in logs.
+_SYNC_GEN_TIMEOUT_SECONDS = 9
+
 service = RoadmapJobService()
 query_builder = QueryBuilder(dynamic_filter=DynamicFilterApplier(),sort=DynamicSortApplier(),search=SearchDynamicQueries())
 validator = QueryValidator()
@@ -173,24 +178,56 @@ def process_roadmap_task(request):
 
 @api_view(['GET'])
 def get_today_session(request):
-    # Subject is hardcoded for now; will come from user profile once the
-    # user model carries a "current_subject" field.
-    subject = "Operating Systems"
+    from enrollments.models import CourseEnrollment
+
+    enrollment_id = request.query_params.get('enrollment_id')
+    if not enrollment_id:
+        return Response({'error': 'enrollment_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+
     try:
-        user_id = request.user.id
-        raw_payload = generate_daily_session(user_id=user_id, subject=subject)
+        enrollment = CourseEnrollment.objects.get(id=enrollment_id, user=request.user)
+    except CourseEnrollment.DoesNotExist:
+        return Response({'error': 'Enrollment not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        session = DailySession.objects.get(
-            user_id=user_id, subject=subject, date=timezone.now().date()
-        )
+    if enrollment.status != CourseEnrollment.Status.ACTIVE:
+        return Response({'error': 'Enrollment is paused'}, status=status.HTTP_403_FORBIDDEN)
 
-        return Response(_build_session_response(raw_payload, session, request.user), status=status.HTTP_200_OK)
-    except Exception:
-        logger.exception("Failed to generate daily session")
-        return Response(
-            {"error": "Failed to generate session. Please try again later."},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
+    # Fast path: existing READY session — no generation needed.
+    ready = DailySession.objects.filter(
+        enrollment=enrollment, status=DailySession.Status.READY
+    ).first()
+    if ready:
+        return Response(_build_session_response(ready.payload_json, ready, request.user), status=status.HTTP_200_OK)
+
+    # Slow path: generate synchronously inside a thread so we can time it out.
+    # gthread Gunicorn workers handle requests in threads — signal.SIGALRM only
+    # fires on the main thread, so we use ThreadPoolExecutor instead.
+    t_start = time.perf_counter()
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+        future = executor.submit(generate_daily_session, enrollment=enrollment)
+        try:
+            raw_payload, session = future.result(timeout=_SYNC_GEN_TIMEOUT_SECONDS)
+            elapsed_ms = int((time.perf_counter() - t_start) * 1000)
+            logger.info(
+                "sync_generation_success enrollment=%s duration_ms=%d",
+                enrollment.id, elapsed_ms,
+            )
+            return Response(_build_session_response(raw_payload, session, request.user), status=status.HTTP_200_OK)
+
+        except concurrent.futures.TimeoutError:
+            elapsed_ms = int((time.perf_counter() - t_start) * 1000)
+            logger.warning(
+                "sync_generation_timeout enrollment=%s duration_ms=%d",
+                enrollment.id, elapsed_ms,
+            )
+            return Response({"status": "preparing"}, status=status.HTTP_202_ACCEPTED)
+
+        except Exception:
+            logger.exception("Failed to generate daily session enrollment=%s", enrollment.id)
+            return Response(
+                {"error": "Failed to generate session. Please try again later."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
 
 @api_view(['GET'])
@@ -300,6 +337,7 @@ def _build_session_response(raw: dict, session: DailySession, user) -> dict:
             "target": 5,
         },
         "focusAreas": transformed_areas,
+        "sessionStatus": session.status,
         "isCompleted": session.is_completed,
         "completionAccuracy": None,
         "completionQuestions": None,

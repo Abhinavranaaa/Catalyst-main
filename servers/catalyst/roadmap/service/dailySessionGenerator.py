@@ -79,15 +79,28 @@ _DIFFICULTY_LABEL = {"new": "easy", "weakness": "mixed", "review": "medium", "ad
 
 # ── Public entry point ────────────────────────────────────────────────────────
 
-def generate_daily_session(user_id: int, subject: str) -> dict:
+def generate_daily_session(enrollment) -> tuple:
+    """
+    Returns (payload_json, DailySession).
+    If a READY or IN_PROGRESS session already exists for this enrollment,
+    returns it immediately without generating a new one.
+    """
+    from enrollments.models import CourseEnrollment  # local import avoids circular
+
+    user_id = enrollment.user_id
+    subject = enrollment.course
     today = timezone.now().date()
 
     existing = DailySession.objects.filter(
-        user_id=user_id, subject=subject, date=today
+        enrollment=enrollment,
+        status__in=[DailySession.Status.READY, DailySession.Status.IN_PROGRESS],
     ).first()
     if existing:
-        logger.info("Returning cached daily session user=%s subject=%s", user_id, subject)
-        return existing.payload_json
+        logger.info(
+            "Returning existing session enrollment=%s status=%s",
+            enrollment.id, existing.status,
+        )
+        return existing.payload_json, existing
 
     # ── Step 1: load topic accuracy ───────────────────────────────────────────
     topic_accuracy = get_session_topic_accuracy(user_id, subject)
@@ -103,7 +116,7 @@ def generate_daily_session(user_id: int, subject: str) -> dict:
     )
     recently_answered_ids = {str(i) for i in recently_answered_ids}
 
-    # ── Step 2: LLM session plan (all topics including mastered) ─────────────
+    # ── Step 2: LLM session plan ──────────────────────────────────────────────
     overall_accuracy = _compute_overall_accuracy(topic_accuracy)
     focus_areas = _plan_session(subject, topic_accuracy, overall_accuracy)
 
@@ -117,7 +130,6 @@ def generate_daily_session(user_id: int, subject: str) -> dict:
         area["accuracy"] = accuracy_map.get(area["topic"]) if area["type"] == "weakness" else None
 
     # ── Step 3: fetch questions per focus area ────────────────────────────────
-    # used_ids grows with each area so no question appears in more than one area
     used_ids: set[str] = set(recently_answered_ids)
     all_question_ids: list[str] = []
     for area in focus_areas:
@@ -150,13 +162,12 @@ def generate_daily_session(user_id: int, subject: str) -> dict:
 
     monday = today - timedelta(days=today.weekday())
     weekly_completed = DailySession.objects.filter(
-        user_id=user_id,
-        subject=subject,
+        enrollment=enrollment,
         date__gte=monday,
-        is_completed=True,
+        status=DailySession.Status.COMPLETED,
     ).count()
 
-    # ── Step 5: assemble and persist ──────────────────────────────────────────
+    # ── Step 5: assemble and persist ─────────────────────────────────────────
     session_id = uuid.uuid4()
     payload = {
         "sessionId": str(session_id),
@@ -170,16 +181,36 @@ def generate_daily_session(user_id: int, subject: str) -> dict:
         "focusAreas": focus_areas,
     }
 
-    DailySession.objects.create(
-        user_id=user_id,
-        subject=subject,
-        date=today,
+    session = create_ready_session(enrollment=enrollment, session_id=session_id, payload=payload, date=today)
+    return payload, session
+
+
+def create_ready_session(enrollment, session_id: uuid.UUID, payload: dict, date) -> DailySession:
+    """
+    Enforce the one-READY-per-enrollment invariant, then create the new session.
+    Any existing READY session for this enrollment is superseded first.
+    """
+    existing_ready = DailySession.objects.filter(
+        enrollment=enrollment, status=DailySession.Status.READY
+    ).first()
+    if existing_ready:
+        logger.warning(
+            "Superseding stale READY session for enrollment=%s old_session_id=%s",
+            enrollment.id, existing_ready.session_id,
+        )
+        existing_ready.status = DailySession.Status.SUPERSEDED
+        existing_ready.save(update_fields=["status"])
+
+    return DailySession.objects.create(
+        enrollment=enrollment,
+        user_id=enrollment.user_id,
+        subject=enrollment.course,
+        date=date,
         payload_json=payload,
         session_id=session_id,
+        status=DailySession.Status.READY,
         is_completed=False,
     )
-
-    return payload
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────

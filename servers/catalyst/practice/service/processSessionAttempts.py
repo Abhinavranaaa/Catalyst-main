@@ -171,19 +171,31 @@ def process_session_attempts(
         correct_total = sum(s["correct"] for s in topic_stats.values())
         overall_accuracy = round(correct_total / answered_total * 100) if answered_total else 0
 
+        session.status = "COMPLETED"
         session.is_completed = True
         session.completed_at = now
         session.session_started_at = session_started_at
         session.completion_accuracy = overall_accuracy
         session.completion_questions = answered_total
         session.save(update_fields=[
-            "is_completed", "completed_at", "session_started_at",
+            "status", "is_completed", "completed_at", "session_started_at",
             "completion_accuracy", "completion_questions",
         ])
 
     # Analytics (streak + heatmap) — uses Answer rows for continuity
     if answer_rows:
         _analytics.process_attempt(user_id, answer_rows)
+
+    # Update enrollment performance profile — incremental, constant cost regardless of history.
+    # Returns analysis dict for the submit response (empty if no enrollment).
+    analysis = {}
+    if session.enrollment_id:
+        from enrollments.service import update_profile_after_submission
+        analysis = update_profile_after_submission(
+            enrollment_id=session.enrollment_id,
+            topic_stats=topic_stats,
+            session_accuracy=overall_accuracy / 100.0,
+        ) or {}
 
     # Step 8 — invalidate Redis cache, then fetch fresh classifications
     invalidate_session_topic_accuracy(user_id, session.subject)
@@ -224,4 +236,6 @@ def process_session_attempts(
             "session_duration_seconds": duration_seconds,
             "topics": topic_results,
         },
+        "topic_breakdown": analysis.get("topic_breakdown"),
+        "weekly_progress": analysis.get("weekly_progress"),
     }
