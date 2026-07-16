@@ -29,5 +29,6 @@ urlpatterns = [
     path('api/save-push-subscription', save_push_subscription),
     path('api/vapid-public-key', get_vapid_public_key, name='vapid_public_key'),
     path("events/notifications/", include("notifications.urls")),
-    path("practice/",include("practice.urls"))
+    path("practice/",include("practice.urls")),
+    path("api/enrollments/", include("enrollments.urls")),
 ]

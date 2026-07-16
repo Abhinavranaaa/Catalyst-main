@@ -15,6 +15,9 @@ class CloudflareShieldMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
+        if settings.DEBUG:
+            return self.get_response(request)
+
         expected_secret = config("CLOUDFLARE_SHIELD_SECRET")
         incoming_secret = request.META.get('HTTP_X_APP_SEC')
 

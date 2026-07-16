@@ -67,18 +67,38 @@ class RoadmapQuestion(models.Model):
 
 
 class DailySession(models.Model):
+
+    class Status(models.TextChoices):
+        READY = "READY", "Ready"
+        IN_PROGRESS = "IN_PROGRESS", "In Progress"
+        COMPLETED = "COMPLETED", "Completed"
+        SUPERSEDED = "SUPERSEDED", "Superseded"
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     subject = models.CharField(max_length=255)
     date = models.DateField()
     payload_json = models.JSONField()
     session_id = models.UUIDField(default=uuid.uuid4, editable=False)
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.READY,
+    )
     is_completed = models.BooleanField(default=False)
     generated_at = models.DateTimeField(auto_now_add=True)
     completed_at = models.DateTimeField(null=True, blank=True)
     session_started_at = models.DateTimeField(null=True, blank=True)
     completion_accuracy = models.IntegerField(null=True, blank=True)
     completion_questions = models.IntegerField(null=True, blank=True)
+    # MC-01: nullable during MC-00 backfill window; becomes load-bearing after MC-00.
+    enrollment = models.ForeignKey(
+        'enrollments.CourseEnrollment',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='daily_sessions',
+    )
 
     class Meta:
         db_table = 'daily_sessions'

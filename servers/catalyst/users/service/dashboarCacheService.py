@@ -1,8 +1,16 @@
 from catalyst.infra.redis import redis_client
 import json
+import datetime
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+def _json_default(obj):
+    if isinstance(obj, (datetime.date, datetime.datetime)):
+        return obj.isoformat()
+    raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
+
 
 class DashBoardCacheService:
     def __init__(self,ttl):
@@ -28,7 +36,7 @@ class DashBoardCacheService:
         try:
             self.cache.set(
                 self.key(user_id),
-                json.dumps(data),
+                json.dumps(data, default=_json_default),
                 ex=self.ttl
             )
         except Exception as e:
