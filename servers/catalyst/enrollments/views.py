@@ -1,9 +1,11 @@
 import logging
 from django.db import transaction, IntegrityError
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 
+from catalyst.constants import SUBJECT_TOPICS
 from .models import CourseEnrollment
 
 logger = logging.getLogger(__name__)
@@ -70,3 +72,13 @@ def list_enrollments(request):
         .values('id', 'course', 'status', 'created_at')
     )
     return Response(list(enrollments))
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def list_available_courses(request):
+    courses = [
+        {'name': name, 'topics': topics}
+        for name, topics in SUBJECT_TOPICS.items()
+    ]
+    return Response(courses)
