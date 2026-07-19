@@ -794,6 +794,22 @@ SUBJECT_TOPICS: dict[str, list[str]] = {
         "Virtualization",
         "Networking",
     ],
+    "Advanced Programming": [
+        "Classes and Objects",
+        "Inheritance",
+        "Polymorphism",
+        "Encapsulation and Abstraction",
+        "Interfaces and Abstract Classes",
+        "Exception Handling",
+        "Generics and Templates",
+        "Collections and Data Structures",
+        "File I/O and Streams",
+        "Design Patterns",
+        "Recursion and Backtracking",
+        "Concurrency and Multithreading",
+        "Memory Management",
+        "Functional Programming Concepts",
+    ],
 }
 
 MAX_ROADMAPS_PER_WINDOW = 3
