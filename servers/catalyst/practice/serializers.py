@@ -35,7 +35,7 @@ class SessionAttemptInputSerializer(serializers.Serializer):
 
 class FocusAreaAttemptsSerializer(serializers.Serializer):
     topic_name = serializers.CharField()
-    topic_type = serializers.ChoiceField(choices=["weakness", "new", "review"])
+    topic_type = serializers.ChoiceField(choices=["weakness", "new", "review", "advance"])
     attempts = SessionAttemptInputSerializer(many=True)
 
 
