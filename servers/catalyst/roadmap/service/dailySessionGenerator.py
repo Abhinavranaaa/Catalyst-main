@@ -210,6 +210,7 @@ def create_ready_session(enrollment, session_id: uuid.UUID, payload: dict, date)
         session_id=session_id,
         status=DailySession.Status.READY,
         is_completed=False,
+        scheduled_for=date + timedelta(days=1),
     )
 
 
@@ -346,6 +347,7 @@ def _fetch_from_postgres(ids: list[str], area_type: str) -> list:
         .only(
             "id", "text", "options", "correct_index", "difficulty",
             "explanation", "distractor_explanations", "bloom_level", "topic",
+            "snippet_language", "snippet_body", "snippet_line_range", "snippet_output",
         )
     )
 
@@ -388,6 +390,7 @@ def _fill_from_fallback(
         .only(
             "id", "text", "options", "correct_index", "difficulty",
             "explanation", "distractor_explanations", "bloom_level", "topic",
+            "snippet_language", "snippet_body", "snippet_line_range", "snippet_output",
         )[:needed]
     )
 
@@ -408,6 +411,10 @@ def _format_question(q) -> dict:
         "explanation": q.explanation or "",
         "distractor_explanations": q.distractor_explanations or "",
         "bloom_level": q.bloom_level,
+        "snippet_language": q.snippet_language,
+        "snippet_body": q.snippet_body,
+        "snippet_line_range": q.snippet_line_range,
+        "snippet_output": q.snippet_output,
         "isBookmarked": False,
         "status": "unanswered",
     }

@@ -71,6 +71,8 @@ class Question(models.Model):
     snippet_language = models.CharField(max_length=50, blank=True, null=True)
     snippet_body = models.TextField(blank=True, null=True)
     snippet_line_range = ArrayField(models.PositiveSmallIntegerField(), size=2, blank=True, null=True)
+    # snippet_output: terminal-style text shown for "predict the output" questions, e.g. what a Java/Python program prints when run.
+    snippet_output = models.TextField(blank=True, null=True)
 
     # Bloom's Taxonomy level 1–6 (Remember → Create).
     bloom_level = models.PositiveSmallIntegerField(blank=True, null=True)

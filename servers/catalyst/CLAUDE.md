@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Catalyst is a Django REST API backend for an AI-powered learning platform targeting Indian JEE exam students. It generates personalized study roadmaps using LLMs and manages practice questions with vector similarity search.
+Catalyst is a Django REST API backend for an AI-powered learning platform. It generates personalized study roadmaps using LLMs and manages practice questions with vector similarity search. The platform is mid-migration toward **multi-course support** (ticket series MC-*): each user can enroll in up to 3 courses (free tier); `CourseEnrollment` is the new first-class model that anchors all per-course data.
 
 ## Development Commands
 
@@ -44,6 +44,7 @@ celery -A catalyst beat --loglevel=info
 | `practice/` | Attempt tracking, session submit pipeline, accuracy metrics |
 | `notifications/` | Push notifications (Web Push/VAPID), email, Celery tasks |
 | `dashboard/` | Aggregated user dashboard data |
+| `enrollments/` | CourseEnrollment model, free-tier 3-course cap (MC-01+) |
 | `catalyst/` | Project config, middleware, constants, rate limiting |
 
 ### Authentication
@@ -64,6 +65,12 @@ Roadmap generation and notifications run as async jobs:
 3. Job status is polled via `/roadmap/job`
 
 Celery beat runs `send_daily_notifications` every 12 hours.
+
+### Course Enrollments (MC-01+)
+
+`enrollments.CourseEnrollment` is the multi-course gate: one row per user+course, status `active|paused`. Free-tier cap = 3 active enrollments — enforced at write time in the enrollment view (402 if exceeded). `DailySession` carries a nullable `enrollment_id` FK; it's nullable during the MC-00 backfill window and becomes load-bearing once MC-00 completes.
+
+Cap enforcement lives exclusively in `enrollments/views.py` using `select_for_update()` inside an atomic block to prevent race conditions. Downstream code (session generation, submit) must never re-check the cap.
 
 ### Daily Sessions
 

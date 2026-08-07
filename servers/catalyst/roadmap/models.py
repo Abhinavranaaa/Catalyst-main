@@ -91,6 +91,8 @@ class DailySession(models.Model):
     session_started_at = models.DateTimeField(null=True, blank=True)
     completion_accuracy = models.IntegerField(null=True, blank=True)
     completion_questions = models.IntegerField(null=True, blank=True)
+    # SCHED-01: set at creation to date + 1 day (server time); null for rows created before this field existed.
+    scheduled_for = models.DateField(null=True, blank=True)
     # MC-01: nullable during MC-00 backfill window; becomes load-bearing after MC-00.
     enrollment = models.ForeignKey(
         'enrollments.CourseEnrollment',
