@@ -554,6 +554,7 @@ def reshape_roadmap_for_response(raw_roadmap: dict,questions: Dict[str, Question
                 "snippet_language": ques.snippet_language,
                 "snippet_body": ques.snippet_body,
                 "snippet_line_range": ques.snippet_line_range,
+                "snippet_output": ques.snippet_output,
                 "attachments": _attachments_for_question(ques),
                 }
             else: 
