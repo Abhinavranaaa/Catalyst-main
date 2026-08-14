@@ -1,4 +1,5 @@
 import logging
+from decimal import Decimal
 from django.db import transaction
 from django.utils import timezone
 
@@ -43,6 +44,19 @@ class UnknownQuestionId(Exception):
     def __init__(self, question_id: str):
         self.question_id = question_id
         super().__init__(f"question_id {question_id} not in session payload")
+
+
+def _is_attempt_correct(question, selected_index, value):
+    """Type-aware correctness check. Returns None for skipped attempts."""
+    if question.response_type == "mcq":
+        if selected_index is None:
+            return None
+        return selected_index == question.correct_index
+    if question.response_type == "numerical":
+        if value is None:
+            return None
+        return abs(Decimal(value) - question.correct_value) <= question.tolerance
+    raise ValueError(f"Unhandled response_type: {question.response_type}")
 
 
 # ── Main entry point ──────────────────────────────────────────────────────────
@@ -94,11 +108,13 @@ def process_session_attempts(
                 raise UnknownQuestionId(qid)
             flat.append({**attempt, "topic_name": area["topic_name"], "topic_type": area["topic_type"]})
 
-    # Step 4 — fetch correct_index from DB for server-side recomputation
+    # Step 4 — fetch correctness fields from DB for server-side recomputation
     incoming_ids = [a["question_id"] for a in flat]
     db_questions: dict[str, Question] = {
         str(q.id): q
-        for q in Question.objects.filter(id__in=incoming_ids).only("id", "correct_index")
+        for q in Question.objects.filter(id__in=incoming_ids).only(
+            "id", "response_type", "correct_index", "correct_value", "tolerance"
+        )
     }
 
     # Step 5 — compute per-topic accuracy (answered only, skips excluded)
@@ -117,10 +133,11 @@ def process_session_attempts(
         qid = str(attempt["question_id"])
         q = db_questions.get(qid)
         selected = attempt.get("selected_index")
-        skipped = selected is None
+        value = attempt.get("value")
+        skipped = (selected is None) if q.response_type == "mcq" else (value is None)
 
         # Server-side correctness
-        is_correct = None if skipped else (selected == q.correct_index)
+        is_correct = _is_attempt_correct(q, selected, value)
 
         # Clamp tap time
         tap_ms = attempt.get("time_to_first_tap_ms")
@@ -134,6 +151,7 @@ def process_session_attempts(
             topic_name=attempt["topic_name"],
             topic_type=attempt["topic_type"],
             selected_index=selected,
+            submitted_value=value,
             is_correct=is_correct,
             time_to_first_tap_ms=tap_ms,
             answer_changed=attempt.get("answer_changed", False),
@@ -143,17 +161,19 @@ def process_session_attempts(
             skipped=skipped,
         ))
 
-        # Only non-skipped attempts go into the Answer table (selected_index is non-nullable there)
+        # Only non-skipped attempts count toward topic stats / legacy Answer table.
+        # Answer (selected_index is non-nullable there) can only hold MCQ attempts.
         # TODO: migrate analytics to SessionAttempt, then remove Answer write
         if not skipped:
-            answer_rows.append(Answer(
-                user_id=user_id,
-                daily_session=session,
-                question=q,
-                selected_index=selected,
-                is_correct=is_correct,
-                time_taken_seconds=tap_ms // 1000 if tap_ms is not None else None,
-            ))
+            if q.response_type == "mcq":
+                answer_rows.append(Answer(
+                    user_id=user_id,
+                    daily_session=session,
+                    question=q,
+                    selected_index=selected,
+                    is_correct=is_correct,
+                    time_taken_seconds=tap_ms // 1000 if tap_ms is not None else None,
+                ))
             stats = topic_stats[attempt["topic_name"]]
             stats["answered"] += 1
             if is_correct:

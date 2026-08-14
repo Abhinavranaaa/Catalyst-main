@@ -59,6 +59,7 @@ class SessionAttempt(models.Model):
     topic_name = models.CharField(max_length=255)
     topic_type = models.CharField(max_length=20, choices=TopicType.choices)
     selected_index = models.IntegerField(null=True, blank=True)
+    submitted_value = models.DecimalField(max_digits=12, decimal_places=4, null=True, blank=True)
     is_correct = models.BooleanField(null=True, blank=True)
     time_to_first_tap_ms = models.IntegerField(null=True, blank=True)
     answer_changed = models.BooleanField(default=False)

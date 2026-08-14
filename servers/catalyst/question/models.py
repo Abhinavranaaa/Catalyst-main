@@ -50,6 +50,11 @@ class ExplanationSource(models.TextChoices):
     LLM_GENERATED = "llm_generated", "LLM Generated"
 
 
+class ResponseType(models.TextChoices):
+    MCQ = "mcq", "Multiple Choice"
+    NUMERICAL = "numerical", "Numerical"
+
+
 class Question(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     topic = models.CharField(max_length=255, blank=True, null=True)
@@ -58,8 +63,15 @@ class Question(models.Model):
     # legacy "easy"/"medium"/"hard" string wherever the API or analytics need it.
     difficulty = models.PositiveSmallIntegerField(blank=True, null=True)
     source = models.TextField(blank=True, null=True)
-    options = ArrayField(models.TextField(), blank=False, null=False)
-    correct_index = models.IntegerField()
+    response_type = models.CharField(
+        max_length=20,
+        choices=ResponseType.choices,
+        default=ResponseType.MCQ,
+    )
+    options = ArrayField(models.TextField(), blank=True, null=True)
+    correct_index = models.IntegerField(blank=True, null=True)
+    correct_value = models.DecimalField(max_digits=12, decimal_places=4, blank=True, null=True)
+    tolerance = models.DecimalField(max_digits=12, decimal_places=4, blank=True, null=True, default=0)
     text = models.TextField()
     explanation = models.TextField(blank=True, null=True)
     distractor_explanations = models.TextField(blank=True, null=True)
@@ -152,6 +164,25 @@ class Question(models.Model):
         db_table = 'questions'
         verbose_name = "Question"
         verbose_name_plural = "Questions"
+        constraints = [
+            models.CheckConstraint(
+                name="question_type_field_consistency",
+                check=(
+                    models.Q(
+                        response_type=ResponseType.MCQ,
+                        correct_value__isnull=True,
+                        options__isnull=False,
+                        correct_index__isnull=False,
+                    )
+                    | models.Q(
+                        response_type=ResponseType.NUMERICAL,
+                        options__isnull=True,
+                        correct_index__isnull=True,
+                        correct_value__isnull=False,
+                    )
+                ),
+            ),
+        ]
 
 
 class AttachmentType(models.TextChoices):

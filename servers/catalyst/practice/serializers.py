@@ -18,7 +18,8 @@ class PostUsrAttemptSerializer(serializers.Serializer):
 
 class SessionAttemptInputSerializer(serializers.Serializer):
     question_id = serializers.UUIDField()
-    selected_index = serializers.IntegerField(allow_null=True)
+    selected_index = serializers.IntegerField(allow_null=True, required=False)
+    value = serializers.DecimalField(max_digits=12, decimal_places=4, required=False, allow_null=True)
     # is_correct from client is ignored — server always recomputes
     is_correct = serializers.BooleanField(allow_null=True, required=False)
     time_to_first_tap_ms = serializers.IntegerField(allow_null=True, required=False)
