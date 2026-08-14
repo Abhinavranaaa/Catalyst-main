@@ -345,7 +345,7 @@ def _fetch_from_postgres(ids: list[str], area_type: str) -> list:
         Question.objects
         .filter(id__in=ids)
         .only(
-            "id", "text", "options", "correct_index", "difficulty",
+            "id", "text", "options", "response_type", "tolerance", "difficulty",
             "explanation", "distractor_explanations", "bloom_level", "topic",
             "snippet_language", "snippet_body", "snippet_line_range", "snippet_output",
         )
@@ -388,7 +388,7 @@ def _fill_from_fallback(
         .exclude(id__in=all_exclude)
         .order_by("difficulty", "bloom_level")
         .only(
-            "id", "text", "options", "correct_index", "difficulty",
+            "id", "text", "options", "response_type", "tolerance", "difficulty",
             "explanation", "distractor_explanations", "bloom_level", "topic",
             "snippet_language", "snippet_body", "snippet_line_range", "snippet_output",
         )[:needed]
@@ -402,11 +402,10 @@ def _fill_from_fallback(
 
 
 def _format_question(q) -> dict:
-    return {
+    formatted = {
         "id": str(q.id),
         "text": q.text,
-        "options": q.options,
-        "correct_index": q.correct_index,
+        "response_type": q.response_type,
         "difficulty": q.difficulty_label,
         "explanation": q.explanation or "",
         "distractor_explanations": q.distractor_explanations or "",
@@ -418,3 +417,8 @@ def _format_question(q) -> dict:
         "isBookmarked": False,
         "status": "unanswered",
     }
+    if q.response_type == "numerical":
+        formatted["tolerance"] = q.tolerance
+    else:
+        formatted["options"] = q.options
+    return formatted

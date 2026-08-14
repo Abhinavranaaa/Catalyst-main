@@ -1,10 +1,14 @@
 import uuid
+from datetime import timedelta
 from types import SimpleNamespace
 from django.test import TestCase
+from django.utils import timezone
+from enrollments.models import CourseEnrollment
 from question.models import AttachmentType, Question, QuestionAttachment
-from roadmap.models import Roadmap, RoadmapQuestion
+from roadmap.models import DailySession, Roadmap, RoadmapQuestion
 from users.models import User
 from roadmap.service.generate import reshape_roadmap_for_response, sync_roadmap_json_with_question_status
+from roadmap.service.dailySessionGenerator import create_ready_session
 
 
 # ---------------------------------------------------------------------------
@@ -283,3 +287,25 @@ class SyncRoadmapJsonTest(TestCase):
         )
         result = sync_roadmap_json_with_question_status(roadmap)
         self.assertEqual(result, {})
+
+
+# ---------------------------------------------------------------------------
+# create_ready_session — SCHED-01
+# ---------------------------------------------------------------------------
+
+class CreateReadySessionScheduledForTest(TestCase):
+
+    def test_scheduled_for_is_set_to_tomorrow_server_date(self):
+        """A session created today via create_ready_session has scheduled_for == today + 1 day (server date)."""
+        user = make_user()
+        enrollment = CourseEnrollment.objects.create(user=user, course="Mathematics")
+        today = timezone.now().date()
+
+        session = create_ready_session(
+            enrollment=enrollment,
+            session_id=uuid.uuid4(),
+            payload={"focusAreas": []},
+            date=today,
+        )
+
+        self.assertEqual(session.scheduled_for, today + timedelta(days=1))

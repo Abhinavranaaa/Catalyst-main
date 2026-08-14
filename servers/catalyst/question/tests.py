@@ -1,4 +1,5 @@
 import uuid
+from django.db import IntegrityError, transaction
 from django.test import TestCase
 from question.models import EnrichmentStatus, Question
 
@@ -38,6 +39,58 @@ class QuestionExplanationFieldTest(TestCase):
         q = self._make_question(explanation=None)
         self.assertIsNone(q.explanation)
         self.assertEqual(q.text, "What is 2 + 2?")
+
+
+class QuestionTypeFieldConsistencyConstraintTest(TestCase):
+    def test_mcq_row_with_correct_value_set_is_rejected(self):
+        with self.assertRaises(IntegrityError):
+            with transaction.atomic():
+                Question.objects.create(
+                    topic="Algebra",
+                    subject="Mathematics",
+                    response_type="mcq",
+                    options=["A", "B", "C", "D"],
+                    correct_index=0,
+                    correct_value=4,
+                    text="What is 2 + 2?",
+                )
+
+    def test_numerical_row_with_options_set_is_rejected(self):
+        with self.assertRaises(IntegrityError):
+            with transaction.atomic():
+                Question.objects.create(
+                    topic="Algebra",
+                    subject="Mathematics",
+                    response_type="numerical",
+                    options=["A", "B", "C", "D"],
+                    correct_index=None,
+                    correct_value=4,
+                    text="What is 2 + 2?",
+                )
+
+    def test_valid_mcq_row_is_accepted(self):
+        q = Question.objects.create(
+            topic="Algebra",
+            subject="Mathematics",
+            response_type="mcq",
+            options=["A", "B", "C", "D"],
+            correct_index=0,
+            text="What is 2 + 2?",
+        )
+        self.assertEqual(q.response_type, "mcq")
+
+    def test_valid_numerical_row_is_accepted(self):
+        q = Question.objects.create(
+            topic="Algebra",
+            subject="Mathematics",
+            response_type="numerical",
+            options=None,
+            correct_index=None,
+            correct_value=4,
+            tolerance="0.01",
+            text="What is 2 + 2?",
+        )
+        self.assertEqual(q.response_type, "numerical")
 
 
 class EnrichmentStatusTransitionTest(TestCase):
