@@ -113,7 +113,8 @@ def process_session_attempts(
     db_questions: dict[str, Question] = {
         str(q.id): q
         for q in Question.objects.filter(id__in=incoming_ids).only(
-            "id", "response_type", "correct_index", "correct_value", "tolerance"
+            "id", "response_type", "correct_index", "correct_value", "tolerance",
+            "explanation", "distractor_explanations",
         )
     }
 
@@ -128,6 +129,7 @@ def process_session_attempts(
 
     session_attempt_rows: list[SessionAttempt] = []
     answer_rows: list[Answer] = []
+    question_results: list[dict] = []
 
     for attempt in flat:
         qid = str(attempt["question_id"])
@@ -138,6 +140,24 @@ def process_session_attempts(
 
         # Server-side correctness
         is_correct = _is_attempt_correct(q, selected, value)
+
+        # Answer key is only revealed here, post-scoring — never in the question-fetch payload
+        result = {
+            "question_id": qid,
+            "response_type": q.response_type,
+            "is_correct": is_correct,
+            "skipped": skipped,
+            "explanation": q.explanation or "",
+            "distractor_explanations": q.distractor_explanations or "",
+        }
+        if q.response_type == "mcq":
+            result["selected_index"] = selected
+            result["correct_index"] = q.correct_index
+        else:
+            result["submitted_value"] = value
+            result["correct_value"] = q.correct_value
+            result["tolerance"] = q.tolerance
+        question_results.append(result)
 
         # Clamp tap time
         tap_ms = attempt.get("time_to_first_tap_ms")
@@ -256,6 +276,7 @@ def process_session_attempts(
             "session_duration_seconds": duration_seconds,
             "topics": topic_results,
         },
+        "question_results": question_results,
         "topic_breakdown": analysis.get("topic_breakdown"),
         "weekly_progress": analysis.get("weekly_progress"),
     }
