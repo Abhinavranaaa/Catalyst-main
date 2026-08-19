@@ -346,7 +346,7 @@ def _fetch_from_postgres(ids: list[str], area_type: str) -> list:
         .filter(id__in=ids)
         .only(
             "id", "text", "options", "response_type", "tolerance", "difficulty",
-            "explanation", "distractor_explanations", "bloom_level", "topic",
+            "bloom_level", "topic",
             "snippet_language", "snippet_body", "snippet_line_range", "snippet_output",
         )
     )
@@ -389,7 +389,7 @@ def _fill_from_fallback(
         .order_by("difficulty", "bloom_level")
         .only(
             "id", "text", "options", "response_type", "tolerance", "difficulty",
-            "explanation", "distractor_explanations", "bloom_level", "topic",
+            "bloom_level", "topic",
             "snippet_language", "snippet_body", "snippet_line_range", "snippet_output",
         )[:needed]
     )
@@ -407,10 +407,7 @@ def _format_question(q) -> dict:
         "text": q.text,
         "response_type": q.response_type,
         "difficulty": q.difficulty_label,
-        "explanation": q.explanation or "",
-        "distractor_explanations": q.distractor_explanations or "",
         "bloom_level": q.bloom_level,
-        "snippet_language": q.snippet_language,
         "snippet_body": q.snippet_body,
         "snippet_line_range": q.snippet_line_range,
         "snippet_output": q.snippet_output,
@@ -421,4 +418,5 @@ def _format_question(q) -> dict:
         formatted["tolerance"] = q.tolerance
     else:
         formatted["options"] = q.options
+        formatted["snippet_language"] = q.snippet_language
     return formatted
