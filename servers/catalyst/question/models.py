@@ -55,10 +55,41 @@ class ResponseType(models.TextChoices):
     NUMERICAL = "numerical", "Numerical"
 
 
+class QuestionSet(models.Model):
+    """
+    A group of questions answered together against shared stimulus
+    (e.g. a VARC passage or DILR table/image). Stimulus fields
+    (image_url, table_data, ...) are added on top by QT-03/QT-05.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    topic = models.CharField(max_length=255)
+    difficulty = models.CharField(max_length=20)
+    directions_text = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "question_sets"
+        verbose_name = "Question Set"
+        verbose_name_plural = "Question Sets"
+
+    def __str__(self):
+        return f"{self.topic} ({self.id})"
+
+
 class Question(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     topic = models.CharField(max_length=255, blank=True, null=True)
     subject = models.CharField(max_length=255, blank=True, null=True)
+    # Set membership — null for standalone questions (everything pre-QT-02).
+    # position_in_set establishes answering order within the set.
+    set = models.ForeignKey(
+        QuestionSet,
+        null=True,
+        blank=True,
+        related_name="questions",
+        on_delete=models.CASCADE,
+    )
+    position_in_set = models.PositiveSmallIntegerField(null=True, blank=True)
     # Integer 1–5 (1=easiest, 5=hardest). Use .difficulty_label for the
     # legacy "easy"/"medium"/"hard" string wherever the API or analytics need it.
     difficulty = models.PositiveSmallIntegerField(blank=True, null=True)
