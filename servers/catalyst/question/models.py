@@ -65,6 +65,9 @@ class QuestionSet(models.Model):
     topic = models.CharField(max_length=255)
     difficulty = models.CharField(max_length=20)
     directions_text = models.TextField()
+    # Shared stimulus image for the whole set (e.g. a DILR table photo).
+    # Plain URL string — no upload mechanism yet (QT-03); populate manually.
+    image_url = models.URLField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -116,6 +119,10 @@ class Question(models.Model):
     snippet_line_range = ArrayField(models.PositiveSmallIntegerField(), size=2, blank=True, null=True)
     # snippet_output: terminal-style text shown for "predict the output" questions, e.g. what a Java/Python program prints when run.
     snippet_output = models.TextField(blank=True, null=True)
+
+    # Standalone-question stimulus image (e.g. a lone diagram question).
+    # Plain URL string — no upload mechanism yet (QT-03); populate manually.
+    image_url = models.URLField(null=True, blank=True)
 
     # Bloom's Taxonomy level 1–6 (Remember → Create).
     bloom_level = models.PositiveSmallIntegerField(blank=True, null=True)
