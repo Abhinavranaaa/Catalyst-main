@@ -323,7 +323,7 @@ def _fetch_questions_for_area(
         if str(hit.id) not in exclude_ids
     ]
 
-    questions = _fetch_from_postgres(candidate_ids, area_type)
+    questions = _fetch_from_postgres(candidate_ids, area_type, exclude_ids)
     questions = questions[:count]
 
     if len(questions) < count:
@@ -334,7 +334,7 @@ def _fetch_questions_for_area(
     return [_format_question(q) for q in questions]
 
 
-def _fetch_from_postgres(ids: list[str], area_type: str) -> list:
+def _fetch_from_postgres(ids: list[str], area_type: str, exclude_ids: set[str] = frozenset()) -> list:
     if not ids:
         return []
 
@@ -344,9 +344,10 @@ def _fetch_from_postgres(ids: list[str], area_type: str) -> list:
     qs = list(
         Question.objects
         .filter(id__in=ids)
+        .select_related("set")
         .only(
             "id", "text", "options", "response_type", "tolerance", "difficulty",
-            "bloom_level", "topic",
+            "bloom_level", "topic", "set", "position_in_set",
             "snippet_language", "snippet_body", "snippet_line_range", "snippet_output",
         )
     )
@@ -354,11 +355,43 @@ def _fetch_from_postgres(ids: list[str], area_type: str) -> list:
     id_order = {qid: idx for idx, qid in enumerate(ids)}
     qs.sort(key=lambda q: id_order.get(str(q.id), 9999))
 
-    return [
+    qs = [
         q for q in qs
         if q.difficulty in allowed_difficulties
         and (q.bloom_level is None or q.bloom_level in allowed_blooms)
     ]
+
+    return resolve_set_membership(qs, exclude_ids)
+
+
+def resolve_set_membership(candidate_questions: list, recently_answered_ids: set[str]) -> list:
+    """
+    Expands any set-member question into its full set, in position_in_set
+    order. If any member of that set is unavailable (already answered
+    recently, filtered out upstream, etc.), the whole set is dropped —
+    a session must never show a partial set.
+
+    Standalone questions (set_id is None) pass through unchanged.
+    """
+    resolved = []
+    seen_sets = set()
+
+    for q in candidate_questions:
+        if q.set_id is None:
+            resolved.append(q)
+            continue
+
+        if q.set_id in seen_sets:
+            continue
+
+        seen_sets.add(q.set_id)
+
+        full_set = list(q.set.questions.order_by("position_in_set"))
+        if all(str(member.id) not in recently_answered_ids for member in full_set):
+            resolved.extend(full_set)
+        # else: drop the whole set silently, do not partially include it
+
+    return resolved
 
 
 def _fill_from_fallback(
