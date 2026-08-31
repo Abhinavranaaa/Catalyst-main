@@ -65,6 +65,12 @@ class QuestionSet(models.Model):
     topic = models.CharField(max_length=255)
     difficulty = models.CharField(max_length=20)
     directions_text = models.TextField()
+    # Shared stimulus image for the whole set (e.g. a DILR table photo).
+    # Plain URL string — no upload mechanism yet (QT-03); populate manually.
+    image_url = models.URLField(null=True, blank=True)
+    # External identifier from a source dataset/import (e.g. a book's
+    # exercise code) — lets re-imports find/update the same set idempotently.
+    external_id = models.CharField(max_length=80, blank=True, null=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -79,6 +85,9 @@ class QuestionSet(models.Model):
 class Question(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     topic = models.CharField(max_length=255, blank=True, null=True)
+    # Finer-grained breakdown within a topic (e.g. topic="Number Systems",
+    # sub_topic="HCF and LCM"). Used for fine-grained weakness tracking.
+    sub_topic = models.CharField(max_length=255, blank=True, null=True, db_index=True)
     subject = models.CharField(max_length=255, blank=True, null=True)
     # Set membership — null for standalone questions (everything pre-QT-02).
     # position_in_set establishes answering order within the set.
@@ -117,8 +126,31 @@ class Question(models.Model):
     # snippet_output: terminal-style text shown for "predict the output" questions, e.g. what a Java/Python program prints when run.
     snippet_output = models.TextField(blank=True, null=True)
 
+    # Standalone-question stimulus image (e.g. a lone diagram question).
+    # Plain URL string — no upload mechanism yet (QT-03); populate manually.
+    image_url = models.URLField(null=True, blank=True)
+
     # Bloom's Taxonomy level 1–6 (Remember → Create).
     bloom_level = models.PositiveSmallIntegerField(blank=True, null=True)
+
+    # Fine-grained technique tag (e.g. "HCF-then-list-its-factors") — lets
+    # practice recommendations target the exact method a user is weak on,
+    # at a finer level than topic/sub_topic.
+    technique_tag = models.CharField(max_length=150, blank=True, null=True, db_index=True)
+    # Short solving shortcut/heuristic shown alongside the explanation.
+    shortcut = models.TextField(blank=True, null=True)
+    # Common mistake this question is designed to catch.
+    common_trap = models.TextField(blank=True, null=True)
+    # Free-text reviewer notes (e.g. "options not legible in source scan") —
+    # not shown to end users, surfaced to whoever verifies imported content.
+    review_notes = models.TextField(blank=True, null=True)
+    # Identifier from the source dataset/import (e.g. a book's question code)
+    # — lets re-imports find/update the same question idempotently.
+    external_id = models.CharField(max_length=80, blank=True, null=True, db_index=True)
+    # Book/chapter/section/exercise provenance for imported content, e.g.
+    # {"book": ..., "chapter": ..., "section": ..., "exercise": ...,
+    #  "book_question_no": ..., "book_answer_key": ...}.
+    source_ref = models.JSONField(blank=True, null=True)
 
     # Provenance — who/what set each enriched value.
     difficulty_source = models.CharField(

@@ -347,7 +347,7 @@ def _fetch_from_postgres(ids: list[str], area_type: str, exclude_ids: set[str] =
         .select_related("set")
         .only(
             "id", "text", "options", "response_type", "tolerance", "difficulty",
-            "bloom_level", "topic", "set", "position_in_set",
+            "bloom_level", "topic", "set", "position_in_set", "image_url",
             "snippet_language", "snippet_body", "snippet_line_range", "snippet_output",
         )
     )
@@ -419,10 +419,11 @@ def _fill_from_fallback(
             difficulty__in=allowed_difficulties,
         )
         .exclude(id__in=all_exclude)
+        .select_related("set")
         .order_by("difficulty", "bloom_level")
         .only(
             "id", "text", "options", "response_type", "tolerance", "difficulty",
-            "bloom_level", "topic",
+            "bloom_level", "topic", "set", "position_in_set", "image_url",
             "snippet_language", "snippet_body", "snippet_line_range", "snippet_output",
         )[:needed]
     )
@@ -435,6 +436,11 @@ def _fill_from_fallback(
 
 
 def _format_question(q) -> dict:
+    # Set-member questions show the set's shared stimulus image, not their
+    # own — a set has one stimulus, embedded into every member (QT-02/QT-03).
+    # Standalone questions use their own image_url.
+    image_url = q.set.image_url if q.set_id else q.image_url
+
     formatted = {
         "id": str(q.id),
         "text": q.text,
@@ -444,6 +450,7 @@ def _format_question(q) -> dict:
         "snippet_body": q.snippet_body,
         "snippet_line_range": q.snippet_line_range,
         "snippet_output": q.snippet_output,
+        "image_url": image_url,
         "isBookmarked": False,
         "status": "unanswered",
     }
