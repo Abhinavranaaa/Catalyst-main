@@ -810,6 +810,9 @@ SUBJECT_TOPICS: dict[str, list[str]] = {
         "Memory Management",
         "Functional Programming Concepts",
     ],
+    "CAT Quantitative Aptitude": [
+        "Number Systems",
+    ],
 }
 
 MAX_ROADMAPS_PER_WINDOW = 3
