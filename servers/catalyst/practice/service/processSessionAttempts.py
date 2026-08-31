@@ -55,7 +55,8 @@ def _is_attempt_correct(question, selected_index, value):
     if question.response_type == "numerical":
         if value is None:
             return None
-        return abs(Decimal(value) - question.correct_value) <= question.tolerance
+        tolerance = question.tolerance if question.tolerance is not None else Decimal("0")
+        return abs(Decimal(value) - question.correct_value) <= tolerance
     raise ValueError(f"Unhandled response_type: {question.response_type}")
 
 
