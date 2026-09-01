@@ -455,7 +455,9 @@ def _format_question(q) -> dict:
         "status": "unanswered",
     }
     if q.response_type == "numerical":
-        formatted["tolerance"] = q.tolerance
+        # payload_json is a Postgres JSONField written via psycopg2's plain
+        # json.dumps — Decimal isn't serializable there, so cast to float.
+        formatted["tolerance"] = float(q.tolerance) if q.tolerance is not None else 0.0
     else:
         formatted["options"] = q.options
         formatted["snippet_language"] = q.snippet_language
