@@ -812,6 +812,7 @@ SUBJECT_TOPICS: dict[str, list[str]] = {
     ],
     "CAT Quantitative Aptitude": [
         "Number Systems",
+        "Progression",
     ],
 }
 
