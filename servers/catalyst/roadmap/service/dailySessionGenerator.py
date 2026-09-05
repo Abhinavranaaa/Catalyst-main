@@ -323,27 +323,33 @@ def _fetch_questions_for_area(
         if str(hit.id) not in exclude_ids
     ]
 
-    questions = _fetch_from_postgres(candidate_ids, area_type, exclude_ids)
+    questions = _fetch_from_postgres(candidate_ids, subject, topic, area_type, exclude_ids)
     questions = questions[:count]
 
     if len(questions) < count:
         questions = _fill_from_fallback(
-            questions, subject, area_type, exclude_ids, count
+            questions, subject, topic, area_type, exclude_ids, count
         )
 
     return [_format_question(q) for q in questions]
 
 
-def _fetch_from_postgres(ids: list[str], area_type: str, exclude_ids: set[str] = frozenset()) -> list:
+def _fetch_from_postgres(
+    ids: list[str], subject: str, topic: str, area_type: str, exclude_ids: set[str] = frozenset()
+) -> list:
     if not ids:
         return []
 
     allowed_difficulties = _DIFFICULTY_RANGES.get(area_type, {1, 2, 3, 4, 5})
     allowed_blooms = _BLOOM_RANGES.get(area_type, {1, 2, 3, 4, 5, 6})
 
+    # Qdrant search has no subject/topic payload filter — it's pure semantic
+    # nearest-neighbor across the whole collection (all courses). Re-scope
+    # here so a stray high-similarity hit from another subject/topic can
+    # never leak into this focus area.
     qs = list(
         Question.objects
-        .filter(id__in=ids)
+        .filter(id__in=ids, subject=subject, topic=topic)
         .select_related("set")
         .only(
             "id", "text", "options", "response_type", "tolerance", "difficulty",
@@ -397,6 +403,7 @@ def resolve_set_membership(candidate_questions: list, recently_answered_ids: set
 def _fill_from_fallback(
     existing: list,
     subject: str,
+    topic: str,
     area_type: str,
     exclude_ids: set[str],
     target_count: int,
@@ -416,6 +423,7 @@ def _fill_from_fallback(
         .filter(
             Q(bloom_level__isnull=True) | Q(bloom_level__in=allowed_blooms),
             subject=subject,
+            topic=topic,
             difficulty__in=allowed_difficulties,
         )
         .exclude(id__in=all_exclude)
@@ -429,8 +437,8 @@ def _fill_from_fallback(
     )
 
     logger.info(
-        "Fallback filled %d/%d questions for subject=%s area_type=%s",
-        len(extra), needed, subject, area_type,
+        "Fallback filled %d/%d questions for subject=%s topic=%s area_type=%s",
+        len(extra), needed, subject, topic, area_type,
     )
     return existing + extra
 
