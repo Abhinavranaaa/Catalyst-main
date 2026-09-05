@@ -306,25 +306,35 @@ def _fetch_questions_for_area(
     """
     difficulty_hint = _DIFFICULTY_LABEL.get(area_type, "mixed")
     query_text = f"Subject: {subject}. Topic: {topic}. Difficulty: {difficulty_hint}"
-    query_vector = generate_embedding_from_text(query_text)
 
-    fetch_limit = count + len(exclude_ids) + 10
+    questions = []
+    try:
+        query_vector = generate_embedding_from_text(query_text)
 
-    hits = qdrant.search(
-        collection_name=_COLLECTION_NAME,
-        query_vector=query_vector,
-        limit=fetch_limit,
-        score_threshold=0.45,
-        with_payload=False,
-    )
+        fetch_limit = count + len(exclude_ids) + 10
 
-    candidate_ids = [
-        str(hit.id) for hit in hits
-        if str(hit.id) not in exclude_ids
-    ]
+        hits = qdrant.search(
+            collection_name=_COLLECTION_NAME,
+            query_vector=query_vector,
+            limit=fetch_limit,
+            score_threshold=0.45,
+            with_payload=False,
+        )
 
-    questions = _fetch_from_postgres(candidate_ids, subject, topic, area_type, exclude_ids)
-    questions = questions[:count]
+        candidate_ids = [
+            str(hit.id) for hit in hits
+            if str(hit.id) not in exclude_ids
+        ]
+
+        questions = _fetch_from_postgres(candidate_ids, subject, topic, area_type, exclude_ids)
+        questions = questions[:count]
+    except Exception:
+        logger.warning(
+            "Embedding/vector search failed for subject=%s topic=%s area_type=%s — "
+            "falling back to Postgres-only question selection (no semantic ranking)",
+            subject, topic, area_type, exc_info=True,
+        )
+        questions = []
 
     if len(questions) < count:
         questions = _fill_from_fallback(
