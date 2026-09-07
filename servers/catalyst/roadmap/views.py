@@ -6,7 +6,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from roadmap.service.generate import generate_roadmap_json,fetchRoadmapJson,fetchRoadmapJob
-from roadmap.service.dailySessionGenerator import generate_daily_session
+from roadmap.service.dailySessionGenerator import generate_daily_session, claim_generation_slot
 from roadmap.models import Roadmap, DailySession
 from practice.service.processSessionAttempts import (
     process_session_attempts,
@@ -199,35 +199,84 @@ def get_today_session(request):
     if ready:
         return Response(_build_session_response(ready.payload_json, ready, request.user), status=status.HTTP_200_OK)
 
+    # Already done today — don't regenerate, tell the frontend so it can
+    # offer to review the completed session or upsell premium (multiple
+    # sessions/day). Without this check the code below would try to
+    # generate a second session and collide with the DB's one-per-day
+    # constraint on (user, subject, date).
+    today = timezone.now().date()
+    completed_today = DailySession.objects.filter(
+        enrollment=enrollment, date=today, status=DailySession.Status.COMPLETED,
+    ).first()
+    if completed_today:
+        return Response(
+            {
+                "status": "already_completed",
+                "message": "You've already completed today's session. Review it below, or go Premium to unlock multiple sessions a day.",
+                "session": _build_session_response(completed_today.payload_json, completed_today, request.user),
+                "canReview": True,
+                "premiumUpsell": True,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    # Claim the right to generate today's session before spawning any work.
+    # Without this, every poll that lands while generation is still running
+    # (e.g. slow/degraded embedding service) would kick off its own redundant
+    # LLM + embedding pipeline — piling up concurrent duplicate generations
+    # that race on the same (user, subject, date) row.
+    claimed = claim_generation_slot(enrollment, today)
+    if claimed is None:
+        # Someone else already claimed this date — either it just finished
+        # (check again) or it's still in flight, in which case we just wait
+        # for the next poll instead of starting another generation.
+        ready = DailySession.objects.filter(
+            enrollment=enrollment, status=DailySession.Status.READY, date=today,
+        ).first()
+        if ready:
+            return Response(_build_session_response(ready.payload_json, ready, request.user), status=status.HTTP_200_OK)
+        return Response({"status": "preparing"}, status=status.HTTP_202_ACCEPTED)
+
     # Slow path: generate synchronously inside a thread so we can time it out.
     # gthread Gunicorn workers handle requests in threads — signal.SIGALRM only
     # fires on the main thread, so we use ThreadPoolExecutor instead.
+    #
+    # Deliberately NOT a `with` block: ThreadPoolExecutor.__exit__ calls
+    # shutdown(wait=True), which would block this request until the
+    # generation thread finishes even after we've already decided to return
+    # early on timeout — defeating the point of the timeout. shutdown(wait=False)
+    # lets the thread keep running in the background (generate_daily_session
+    # itself guarantees the claimed row ends up READY or gets cleaned up on
+    # failure, and logs any exception that would otherwise go uncollected).
     t_start = time.perf_counter()
-    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-        future = executor.submit(generate_daily_session, enrollment=enrollment)
-        try:
-            raw_payload, session = future.result(timeout=_SYNC_GEN_TIMEOUT_SECONDS)
-            elapsed_ms = int((time.perf_counter() - t_start) * 1000)
-            logger.info(
-                "sync_generation_success enrollment=%s duration_ms=%d",
-                enrollment.id, elapsed_ms,
-            )
-            return Response(_build_session_response(raw_payload, session, request.user), status=status.HTTP_200_OK)
+    executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+    future = executor.submit(generate_daily_session, enrollment=enrollment)
+    try:
+        raw_payload, session = future.result(timeout=_SYNC_GEN_TIMEOUT_SECONDS)
+        elapsed_ms = int((time.perf_counter() - t_start) * 1000)
+        logger.info(
+            "sync_generation_success enrollment=%s duration_ms=%d",
+            enrollment.id, elapsed_ms,
+        )
+        return Response(_build_session_response(raw_payload, session, request.user), status=status.HTTP_200_OK)
 
-        except concurrent.futures.TimeoutError:
-            elapsed_ms = int((time.perf_counter() - t_start) * 1000)
-            logger.warning(
-                "sync_generation_timeout enrollment=%s duration_ms=%d",
-                enrollment.id, elapsed_ms,
-            )
-            return Response({"status": "preparing"}, status=status.HTTP_202_ACCEPTED)
+    except concurrent.futures.TimeoutError:
+        elapsed_ms = int((time.perf_counter() - t_start) * 1000)
+        logger.warning(
+            "sync_generation_timeout enrollment=%s duration_ms=%d",
+            enrollment.id, elapsed_ms,
+        )
+        return Response({"status": "preparing"}, status=status.HTTP_202_ACCEPTED)
 
-        except Exception:
-            logger.exception("Failed to generate daily session enrollment=%s", enrollment.id)
-            return Response(
-                {"error": "Failed to generate session. Please try again later."},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+    except Exception:
+        logger.exception("Failed to generate daily session enrollment=%s", enrollment.id)
+        return Response(
+            {"error": "Failed to generate session. Please try again later."},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+    finally:
+        executor.shutdown(wait=False)
 
 
 @api_view(['GET'])
