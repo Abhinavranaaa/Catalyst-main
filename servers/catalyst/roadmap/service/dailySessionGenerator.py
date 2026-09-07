@@ -4,6 +4,7 @@ import uuid
 from datetime import timedelta
 from typing import Optional
 
+from django.db import IntegrityError, transaction
 from django.db.models import Min, Max
 from django.utils import timezone
 from langchain.schema import HumanMessage
@@ -79,29 +80,85 @@ _DIFFICULTY_LABEL = {"new": "easy", "weakness": "mixed", "review": "medium", "ad
 
 # ── Public entry point ────────────────────────────────────────────────────────
 
+def claim_generation_slot(enrollment, date) -> Optional[DailySession]:
+    """
+    Atomically claim the right to generate today's session for this enrollment.
+
+    Backed by the unique_daily_session_per_subject constraint on
+    (user, subject, date): only one caller can win the INSERT for a given
+    date, so concurrent requests (e.g. rapid polling from the frontend while
+    generation is slow) can detect an in-flight generation instead of each
+    kicking off their own redundant LLM + embedding pipeline.
+
+    Returns the claimed IN_PROGRESS row, or None if a session for this date
+    already exists in any status (another request is already generating it,
+    or one is already READY/COMPLETED).
+    """
+    try:
+        with transaction.atomic():
+            return DailySession.objects.create(
+                enrollment=enrollment,
+                user_id=enrollment.user_id,
+                subject=enrollment.course,
+                date=date,
+                payload_json={},
+                session_id=uuid.uuid4(),
+                status=DailySession.Status.IN_PROGRESS,
+                is_completed=False,
+                scheduled_for=date + timedelta(days=1),
+            )
+    except IntegrityError:
+        return None
+
+
 def generate_daily_session(enrollment) -> tuple:
     """
-    Returns (payload_json, DailySession).
-    If a READY or IN_PROGRESS session already exists for this enrollment,
-    returns it immediately without generating a new one.
-    """
-    from enrollments.models import CourseEnrollment  # local import avoids circular
+    Fills in and finalizes the IN_PROGRESS session row claimed via
+    claim_generation_slot() for this enrollment/today.
 
+    Always leaves that row in a terminal state before returning: READY on
+    success, or deleted on failure. This matters even when the caller (the
+    sync-generation-with-timeout view) has already given up and moved on —
+    without this cleanup, a failure here would otherwise be silently
+    swallowed (nothing re-collects this thread's exception once the request
+    that spawned it has already returned) and the stuck IN_PROGRESS row
+    would block every future generation attempt for this date.
+    """
     user_id = enrollment.user_id
     subject = enrollment.course
     today = timezone.now().date()
 
-    existing = DailySession.objects.filter(
-        enrollment=enrollment,
-        status__in=[DailySession.Status.READY, DailySession.Status.IN_PROGRESS],
+    session_row = DailySession.objects.filter(
+        enrollment=enrollment, date=today, status=DailySession.Status.IN_PROGRESS,
     ).first()
-    if existing:
-        logger.info(
-            "Returning existing session enrollment=%s status=%s",
-            enrollment.id, existing.status,
-        )
-        return existing.payload_json, existing
+    if session_row is None:
+        # Not pre-claimed by a caller (e.g. invoked directly outside the
+        # normal view flow) — claim it now so the rest of this function has
+        # a row to fill in and finalize.
+        existing = DailySession.objects.filter(enrollment=enrollment, date=today).first()
+        if existing:
+            return existing.payload_json, existing
+        session_row = claim_generation_slot(enrollment, today)
+        if session_row is None:
+            existing = DailySession.objects.filter(enrollment=enrollment, date=today).first()
+            if existing:
+                return existing.payload_json, existing
+            raise RuntimeError(f"Could not claim a session slot for enrollment={enrollment.id}")
 
+    try:
+        return _build_and_finalize_session(enrollment, session_row, user_id, subject, today)
+    except Exception:
+        logger.exception(
+            "Daily session generation failed enrollment=%s session_id=%s — releasing claimed slot",
+            enrollment.id, session_row.session_id,
+        )
+        DailySession.objects.filter(
+            pk=session_row.pk, status=DailySession.Status.IN_PROGRESS,
+        ).delete()
+        raise
+
+
+def _build_and_finalize_session(enrollment, session_row, user_id, subject, today) -> tuple:
     # ── Step 1: load topic accuracy ───────────────────────────────────────────
     topic_accuracy = get_session_topic_accuracy(user_id, subject)
 
@@ -167,10 +224,9 @@ def generate_daily_session(enrollment) -> tuple:
         status=DailySession.Status.COMPLETED,
     ).count()
 
-    # ── Step 5: assemble and persist ─────────────────────────────────────────
-    session_id = uuid.uuid4()
+    # ── Step 5: assemble and finalize the claimed slot ───────────────────────
     payload = {
-        "sessionId": str(session_id),
+        "sessionId": str(session_row.session_id),
         "date": today.isoformat(),
         "subject": subject,
         "questionCount": total_questions,
@@ -181,8 +237,10 @@ def generate_daily_session(enrollment) -> tuple:
         "focusAreas": focus_areas,
     }
 
-    session = create_ready_session(enrollment=enrollment, session_id=session_id, payload=payload, date=today)
-    return payload, session
+    session_row.payload_json = payload
+    session_row.status = DailySession.Status.READY
+    session_row.save(update_fields=["payload_json", "status"])
+    return payload, session_row
 
 
 def create_ready_session(enrollment, session_id: uuid.UUID, payload: dict, date) -> DailySession:
