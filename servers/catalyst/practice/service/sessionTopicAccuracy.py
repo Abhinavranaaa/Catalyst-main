@@ -5,7 +5,7 @@ from django.utils import timezone
 from datetime import timedelta
 from catalyst.infra.redis import redis_client
 from catalyst.constants import SUBJECT_TOPICS
-from practice.models import Answer
+from practice.models import SessionAttempt
 
 logger = logging.getLogger(__name__)
 
@@ -28,15 +28,15 @@ def _compute_from_db(user_id: int, subject: str) -> list[dict]:
     thirty_days_ago = timezone.now() - timedelta(days=30)
 
     rows = (
-        Answer.objects
+        SessionAttempt.objects
         .filter(
             user_id=user_id,
-            daily_session__isnull=False,
-            daily_session__subject=subject,
-            answered_at__gte=thirty_days_ago,
-            question__topic__in=topics,
+            session__subject=subject,
+            created_at__gte=thirty_days_ago,
+            topic_name__in=topics,
+            skipped=False,
         )
-        .values("question__topic")
+        .values("topic_name")
         .annotate(
             total=Count("id"),
             correct=Sum(
@@ -51,7 +51,7 @@ def _compute_from_db(user_id: int, subject: str) -> list[dict]:
 
     attempted: dict[str, dict] = {}
     for row in rows:
-        topic = row["question__topic"]
+        topic = row["topic_name"]
         total = row["total"]
         correct = row["correct"] or 0
         accuracy = round((correct / total) * 100) if total else 0

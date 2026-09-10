@@ -19,7 +19,7 @@ from catalyst.constants import (
     OPENAI_API_KEY, SESSION_PLAN_PROMPT, LLM_MODEL_ROADMAP,
 )
 from catalyst.utils import remove_think_blocks
-from practice.models import Answer
+from practice.models import SessionAttempt
 from practice.service.sessionTopicAccuracy import get_session_topic_accuracy
 from question.models import Question
 from roadmap.models import DailySession
@@ -163,11 +163,12 @@ def _build_and_finalize_session(enrollment, session_row, user_id, subject, today
     topic_accuracy = get_session_topic_accuracy(user_id, subject)
 
     recently_answered_ids: set[str] = set(
-        Answer.objects
+        SessionAttempt.objects
         .filter(
             user_id=user_id,
-            daily_session__subject=subject,
-            answered_at__gte=timezone.now() - timedelta(days=14),
+            session__subject=subject,
+            created_at__gte=timezone.now() - timedelta(days=14),
+            skipped=False,
         )
         .values_list("question_id", flat=True)
     )

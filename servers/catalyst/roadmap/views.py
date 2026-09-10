@@ -350,6 +350,30 @@ def submit_session(request, session_id):
         )
 
 
+@api_view(['GET'])
+def get_session_review(request, session_id):
+    """
+    Re-fetches a previously submitted session's results (DS-010).
+
+    Returns the exact payload the /submit call returned at submission time —
+    lets the frontend show a "review" screen later without re-submitting.
+    """
+    try:
+        session = DailySession.objects.get(
+            session_id=session_id, user_id=request.user.id
+        )
+    except DailySession.DoesNotExist:
+        return Response({"error": "Session not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    if session.completed_at is None or session.results_json is None:
+        return Response(
+            {"error": "Session has not been submitted yet"},
+            status=status.HTTP_409_CONFLICT,
+        )
+
+    return Response(session.results_json, status=status.HTTP_200_OK)
+
+
 def _build_session_response(raw: dict, session: DailySession, user) -> dict:
     """
     Transforms the generator's raw payload into the API response shape.

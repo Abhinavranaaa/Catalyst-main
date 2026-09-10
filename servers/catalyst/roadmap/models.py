@@ -91,6 +91,9 @@ class DailySession(models.Model):
     session_started_at = models.DateTimeField(null=True, blank=True)
     completion_accuracy = models.IntegerField(null=True, blank=True)
     completion_questions = models.IntegerField(null=True, blank=True)
+    # DS-010: exact submit-time response payload, so the review screen can re-fetch
+    # the same result later without recomputing drifting state (topic classifications etc).
+    results_json = models.JSONField(null=True, blank=True)
     # SCHED-01: set at creation to date + 1 day (server time); null for rows created before this field existed.
     scheduled_for = models.DateField(null=True, blank=True)
     # MC-01: nullable during MC-00 backfill window; becomes load-bearing after MC-00.

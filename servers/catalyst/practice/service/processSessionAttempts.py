@@ -1,7 +1,9 @@
+import json
 import logging
 from decimal import Decimal
 from django.db import transaction
 from django.utils import timezone
+from rest_framework.utils.encoders import JSONEncoder
 
 from practice.models import Answer, SessionAttempt
 from practice.service.sessionTopicAccuracy import (
@@ -266,7 +268,7 @@ def process_session_attempts(
         session_id, user_id, total_questions, answered_total, correct_total, overall_accuracy,
     )
 
-    return {
+    result = {
         "status": "submitted",
         "session_id": str(session.session_id),
         "summary": {
@@ -281,3 +283,11 @@ def process_session_attempts(
         "topic_breakdown": analysis.get("topic_breakdown"),
         "weekly_progress": analysis.get("weekly_progress"),
     }
+
+    # Persist the exact response so it can be re-fetched later (review screen)
+    # without recomputing state that drifts over time (topic classifications, etc).
+    # Round-trip through DRF's encoder so stored Decimal/UUID values match what the API returns.
+    session.results_json = json.loads(json.dumps(result, cls=JSONEncoder))
+    session.save(update_fields=["results_json"])
+
+    return result
