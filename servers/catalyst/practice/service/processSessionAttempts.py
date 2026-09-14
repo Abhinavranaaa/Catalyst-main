@@ -117,7 +117,7 @@ def process_session_attempts(
         str(q.id): q
         for q in Question.objects.filter(id__in=incoming_ids).only(
             "id", "response_type", "correct_index", "correct_value", "tolerance",
-            "explanation", "distractor_explanations",
+            "explanation", "distractor_explanations", "shortcut", "common_trap",
         )
     }
 
@@ -152,6 +152,8 @@ def process_session_attempts(
             "skipped": skipped,
             "explanation": q.explanation or "",
             "distractor_explanations": q.distractor_explanations or "",
+            "shortcut": q.shortcut or "",
+            "common_trap": q.common_trap or "",
         }
         if q.response_type == "mcq":
             result["selected_index"] = selected

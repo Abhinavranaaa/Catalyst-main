@@ -814,6 +814,7 @@ SUBJECT_TOPICS: dict[str, list[str]] = {
         "Number Systems",
         "Progression",
         "Averages",
+        "Percentages"
     ],
 }
 

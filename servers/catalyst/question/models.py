@@ -58,8 +58,7 @@ class ResponseType(models.TextChoices):
 class QuestionSet(models.Model):
     """
     A group of questions answered together against shared stimulus
-    (e.g. a VARC passage or DILR table/image). Stimulus fields
-    (image_url, table_data, ...) are added on top by QT-03/QT-05.
+    (e.g. a VARC passage or DILR table/image).
     """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     topic = models.CharField(max_length=255)
@@ -68,6 +67,11 @@ class QuestionSet(models.Model):
     # Shared stimulus image for the whole set (e.g. a DILR table photo).
     # Plain URL string — no upload mechanism yet (QT-03); populate manually.
     image_url = models.URLField(null=True, blank=True)
+    # Shared stimulus table for the whole set (QT-05), e.g. a DILR data table.
+    # Shape: {"header": [...], "rows": [[...], ...]}.
+    table_data = models.JSONField(null=True, blank=True)
+    table_name = models.CharField(max_length=255, null=True, blank=True)
+    table_unit = models.CharField(max_length=100, null=True, blank=True)
     # External identifier from a source dataset/import (e.g. a book's
     # exercise code) — lets re-imports find/update the same set idempotently.
     external_id = models.CharField(max_length=80, blank=True, null=True, db_index=True)
@@ -77,6 +81,16 @@ class QuestionSet(models.Model):
         db_table = "question_sets"
         verbose_name = "Question Set"
         verbose_name_plural = "Question Sets"
+        constraints = [
+            models.CheckConstraint(
+                check=(
+                    models.Q(table_data__isnull=False, image_url__isnull=True)
+                    | models.Q(table_data__isnull=True, image_url__isnull=False)
+                    | models.Q(table_data__isnull=True, image_url__isnull=True)
+                ),
+                name="questionset_stimulus_exclusivity",
+            )
+        ]
 
     def __str__(self):
         return f"{self.topic} ({self.id})"

@@ -513,10 +513,13 @@ def _fill_from_fallback(
 
 
 def _format_question(q) -> dict:
-    # Set-member questions show the set's shared stimulus image, not their
-    # own — a set has one stimulus, embedded into every member (QT-02/QT-03).
-    # Standalone questions use their own image_url.
+    # Set-member questions show the set's shared stimulus (image or table),
+    # not their own — a set has one stimulus, embedded into every member
+    # (QT-02/QT-05). Standalone questions use their own image_url.
     image_url = q.set.image_url if q.set_id else q.image_url
+    table_data = q.set.table_data if q.set_id else None
+    table_name = q.set.table_name if q.set_id else None
+    table_unit = q.set.table_unit if q.set_id else None
 
     formatted = {
         "id": str(q.id),
@@ -528,6 +531,9 @@ def _format_question(q) -> dict:
         "snippet_line_range": q.snippet_line_range,
         "snippet_output": q.snippet_output,
         "image_url": image_url,
+        "table_data": table_data,
+        "table_name": table_name,
+        "table_unit": table_unit,
         "isBookmarked": False,
         "status": "unanswered",
     }
