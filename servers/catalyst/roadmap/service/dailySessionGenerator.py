@@ -385,8 +385,7 @@ def _fetch_questions_for_area(
             if str(hit.id) not in exclude_ids
         ]
 
-        questions = _fetch_from_postgres(candidate_ids, subject, topic, area_type, exclude_ids)
-        questions = questions[:count]
+        questions = _fetch_from_postgres(candidate_ids, subject, topic, area_type, count, exclude_ids)
     except Exception:
         logger.warning(
             "Embedding/vector search failed for subject=%s topic=%s area_type=%s — "
@@ -404,7 +403,8 @@ def _fetch_questions_for_area(
 
 
 def _fetch_from_postgres(
-    ids: list[str], subject: str, topic: str, area_type: str, exclude_ids: set[str] = frozenset()
+    ids: list[str], subject: str, topic: str, area_type: str, target_count: int,
+    exclude_ids: set[str] = frozenset(),
 ) -> list:
     if not ids:
         return []
@@ -436,10 +436,12 @@ def _fetch_from_postgres(
         and (q.bloom_level is None or q.bloom_level in allowed_blooms)
     ]
 
-    return resolve_set_membership(qs, exclude_ids)
+    return resolve_set_membership(qs, exclude_ids, target_count=target_count)
 
 
-def resolve_set_membership(candidate_questions: list, recently_answered_ids: set[str]) -> list:
+def resolve_set_membership(
+    candidate_questions: list, recently_answered_ids: set[str], target_count: Optional[int] = None,
+) -> list:
     """
     Expands any set-member question into its full set, in position_in_set
     order. If any member of that set is unavailable (already answered
@@ -447,11 +449,19 @@ def resolve_set_membership(candidate_questions: list, recently_answered_ids: set
     a session must never show a partial set.
 
     Standalone questions (set_id is None) pass through unchanged.
+
+    `target_count`, when given, is a floor, not a ceiling: once it's met we
+    stop pulling in new candidates, but a set already in progress is always
+    resolved in full — sets are the only thing allowed to push the result
+    past target_count, standalone questions never do.
     """
     resolved = []
     seen_sets = set()
 
     for q in candidate_questions:
+        if target_count is not None and len(resolved) >= target_count:
+            break
+
         if q.set_id is None:
             resolved.append(q)
             continue
@@ -487,7 +497,12 @@ def _fill_from_fallback(
 
     from django.db.models import Q
 
-    extra = list(
+    # Fetch more candidate rows than strictly `needed` — a set member found
+    # near the end of this slice still needs its siblings pulled in by
+    # resolve_set_membership below, which can only expand candidates it can
+    # see. Slack is intentionally generous since this is the fallback path
+    # (no relevance ranking to lean on).
+    candidates = list(
         Question.objects
         .filter(
             Q(bloom_level__isnull=True) | Q(bloom_level__in=allowed_blooms),
@@ -502,8 +517,10 @@ def _fill_from_fallback(
             "id", "text", "options", "response_type", "tolerance", "difficulty",
             "bloom_level", "topic", "set", "position_in_set", "image_url",
             "snippet_language", "snippet_body", "snippet_line_range", "snippet_output",
-        )[:needed]
+        )[:needed + 20]
     )
+
+    extra = resolve_set_membership(candidates, all_exclude, target_count=needed)
 
     logger.info(
         "Fallback filled %d/%d questions for subject=%s topic=%s area_type=%s",
@@ -513,13 +530,15 @@ def _fill_from_fallback(
 
 
 def _format_question(q) -> dict:
-    # Set-member questions show the set's shared stimulus (image or table),
-    # not their own — a set has one stimulus, embedded into every member
-    # (QT-02/QT-05). Standalone questions use their own image_url.
+    # Set-member questions show the set's shared stimulus (image, table, or
+    # plain text), not their own — a set has one stimulus, embedded into
+    # every member (QT-02/QT-05/QT-06). Standalone questions use their own
+    # image_url.
     image_url = q.set.image_url if q.set_id else q.image_url
     table_data = q.set.table_data if q.set_id else None
     table_name = q.set.table_name if q.set_id else None
     table_unit = q.set.table_unit if q.set_id else None
+    stimulus_text = q.set.stimulus_text if q.set_id else None
 
     formatted = {
         "id": str(q.id),
@@ -534,6 +553,7 @@ def _format_question(q) -> dict:
         "table_data": table_data,
         "table_name": table_name,
         "table_unit": table_unit,
+        "stimulus_text": stimulus_text,
         "isBookmarked": False,
         "status": "unanswered",
     }

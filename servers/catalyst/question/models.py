@@ -72,6 +72,9 @@ class QuestionSet(models.Model):
     table_data = models.JSONField(null=True, blank=True)
     table_name = models.CharField(max_length=255, null=True, blank=True)
     table_unit = models.CharField(max_length=100, null=True, blank=True)
+    # Shared plain-text stimulus for the whole set (QT-06), e.g. a VARC
+    # reading passage. Can run long — TextField is unbounded.
+    stimulus_text = models.TextField(null=True, blank=True)
     # External identifier from a source dataset/import (e.g. a book's
     # exercise code) — lets re-imports find/update the same set idempotently.
     external_id = models.CharField(max_length=80, blank=True, null=True, db_index=True)
@@ -84,9 +87,10 @@ class QuestionSet(models.Model):
         constraints = [
             models.CheckConstraint(
                 check=(
-                    models.Q(table_data__isnull=False, image_url__isnull=True)
-                    | models.Q(table_data__isnull=True, image_url__isnull=False)
-                    | models.Q(table_data__isnull=True, image_url__isnull=True)
+                    models.Q(table_data__isnull=True, image_url__isnull=True, stimulus_text__isnull=True)
+                    | models.Q(table_data__isnull=False, image_url__isnull=True, stimulus_text__isnull=True)
+                    | models.Q(table_data__isnull=True, image_url__isnull=False, stimulus_text__isnull=True)
+                    | models.Q(table_data__isnull=True, image_url__isnull=True, stimulus_text__isnull=False)
                 ),
                 name="questionset_stimulus_exclusivity",
             )
