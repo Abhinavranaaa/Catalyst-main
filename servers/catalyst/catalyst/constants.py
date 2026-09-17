@@ -815,7 +815,9 @@ SUBJECT_TOPICS: dict[str, list[str]] = {
         "Progression",
         "Averages",
         "Percentages",
-        "Ratio, Proportion and Variation"
+        "Ratio, Proportion and Variation",
+        "Alligations and Mixtures",
+        "Profit, Loss and Discount"
     ],
 }
 

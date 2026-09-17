@@ -193,9 +193,17 @@ def get_today_session(request):
         return Response({'error': 'Enrollment is paused'}, status=status.HTTP_403_FORBIDDEN)
 
     # Fast path: existing READY session — no generation needed.
+    # date__lte=today (not ==) on purpose: a session eagerly generated after
+    # a submit is dated scheduled_for (submitted session's date + 1), which
+    # may be in the past by the time the user actually returns if they skip
+    # a day. It's still the right next session to serve. The upper bound
+    # still matters — it stops a session generated ahead of time for
+    # tomorrow from being served today, before the review screen below has
+    # had a chance to show the user their just-completed session.
+    today = timezone.now().date()
     ready = DailySession.objects.filter(
-        enrollment=enrollment, status=DailySession.Status.READY
-    ).first()
+        enrollment=enrollment, status=DailySession.Status.READY, date__lte=today,
+    ).order_by("date").first()
     if ready:
         return Response(_build_session_response(ready.payload_json, ready, request.user), status=status.HTTP_200_OK)
 
@@ -204,7 +212,6 @@ def get_today_session(request):
     # sessions/day). Without this check the code below would try to
     # generate a second session and collide with the DB's one-per-day
     # constraint on (user, subject, date).
-    today = timezone.now().date()
     completed_today = DailySession.objects.filter(
         enrollment=enrollment, date=today, status=DailySession.Status.COMPLETED,
     ).first()

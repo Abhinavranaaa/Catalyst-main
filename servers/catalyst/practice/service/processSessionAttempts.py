@@ -231,6 +231,25 @@ def process_session_attempts(
     if answer_rows:
         _analytics.process_attempt(user_id, answer_rows)
 
+    # Eagerly generate the next session so it's READY before the user's next
+    # login, instead of making them wait on synchronous generation. Keyed off
+    # scheduled_for (this session's date + 1) rather than "tomorrow" so it
+    # stays correct even if the user skips days between sessions. Fired after
+    # the transaction above has committed, so the worker can see this row.
+    if session.enrollment_id and session.scheduled_for:
+        try:
+            from roadmap.tasks import generate_next_daily_session_task
+            generate_next_daily_session_task.delay(
+                session.enrollment_id, session.scheduled_for.isoformat(),
+            )
+        except Exception:
+            # Best-effort only — a broker hiccup here must never turn an
+            # already-committed submit into a user-facing failure. The lazy
+            # generation path in get_today_session is still the fallback.
+            logger.exception(
+                "Failed to enqueue eager next-session generation session=%s", session_id,
+            )
+
     # Update enrollment performance profile — incremental, constant cost regardless of history.
     # Returns analysis dict for the submit response (empty if no enrollment).
     analysis = {}

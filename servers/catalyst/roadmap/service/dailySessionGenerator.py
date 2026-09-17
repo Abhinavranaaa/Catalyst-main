@@ -111,10 +111,15 @@ def claim_generation_slot(enrollment, date) -> Optional[DailySession]:
         return None
 
 
-def generate_daily_session(enrollment) -> tuple:
+def generate_daily_session(enrollment, date=None) -> tuple:
     """
     Fills in and finalizes the IN_PROGRESS session row claimed via
-    claim_generation_slot() for this enrollment/today.
+    claim_generation_slot() for this enrollment/date.
+
+    `date` defaults to today (the normal lazy-generation call from
+    get_today_session). Callers pre-generating a future/past-due date
+    (e.g. the eager next-session task fired right after a submit) pass it
+    explicitly.
 
     Always leaves that row in a terminal state before returning: READY on
     success, or deleted on failure. This matters even when the caller (the
@@ -126,27 +131,27 @@ def generate_daily_session(enrollment) -> tuple:
     """
     user_id = enrollment.user_id
     subject = enrollment.course
-    today = timezone.now().date()
+    date = date or timezone.now().date()
 
     session_row = DailySession.objects.filter(
-        enrollment=enrollment, date=today, status=DailySession.Status.IN_PROGRESS,
+        enrollment=enrollment, date=date, status=DailySession.Status.IN_PROGRESS,
     ).first()
     if session_row is None:
         # Not pre-claimed by a caller (e.g. invoked directly outside the
         # normal view flow) — claim it now so the rest of this function has
         # a row to fill in and finalize.
-        existing = DailySession.objects.filter(enrollment=enrollment, date=today).first()
+        existing = DailySession.objects.filter(enrollment=enrollment, date=date).first()
         if existing:
             return existing.payload_json, existing
-        session_row = claim_generation_slot(enrollment, today)
+        session_row = claim_generation_slot(enrollment, date)
         if session_row is None:
-            existing = DailySession.objects.filter(enrollment=enrollment, date=today).first()
+            existing = DailySession.objects.filter(enrollment=enrollment, date=date).first()
             if existing:
                 return existing.payload_json, existing
             raise RuntimeError(f"Could not claim a session slot for enrollment={enrollment.id}")
 
     try:
-        return _build_and_finalize_session(enrollment, session_row, user_id, subject, today)
+        return _build_and_finalize_session(enrollment, session_row, user_id, subject, date)
     except Exception:
         logger.exception(
             "Daily session generation failed enrollment=%s session_id=%s — releasing claimed slot",

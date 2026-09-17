@@ -22,6 +22,15 @@ def _classify(accuracy: int, attempts: int) -> str:
     return "review"
 
 
+# Weighted proficiency scoring — a skip is not a neutral non-event, it should
+# still drag down mastery (just less than a wrong answer): correct=+3,
+# skipped=0, wrong=-1. Normalized against the best-possible score (3 per
+# attempt) so it stays comparable to the old 0-100 accuracy scale.
+_CORRECT_POINTS = 3
+_SKIPPED_POINTS = 0
+_WRONG_POINTS = -1
+
+
 def _compute_from_db(user_id: int, subject: str) -> list[dict]:
     topics = SUBJECT_TOPICS.get(subject, [])
 
@@ -34,15 +43,15 @@ def _compute_from_db(user_id: int, subject: str) -> list[dict]:
             session__subject=subject,
             created_at__gte=thirty_days_ago,
             topic_name__in=topics,
-            skipped=False,
         )
         .values("topic_name")
         .annotate(
             total=Count("id"),
-            correct=Sum(
+            score=Sum(
                 Case(
-                    When(is_correct=True, then=1),
-                    default=0,
+                    When(skipped=True, then=_SKIPPED_POINTS),
+                    When(is_correct=True, then=_CORRECT_POINTS),
+                    default=_WRONG_POINTS,
                     output_field=IntegerField(),
                 )
             ),
@@ -53,8 +62,9 @@ def _compute_from_db(user_id: int, subject: str) -> list[dict]:
     for row in rows:
         topic = row["topic_name"]
         total = row["total"]
-        correct = row["correct"] or 0
-        accuracy = round((correct / total) * 100) if total else 0
+        score = row["score"] or 0
+        max_score = total * _CORRECT_POINTS
+        accuracy = round(max(0, score) / max_score * 100) if max_score else 0
         attempted[topic] = {
             "topic": topic,
             "accuracy": accuracy,
