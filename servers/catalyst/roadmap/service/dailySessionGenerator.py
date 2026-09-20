@@ -531,7 +531,63 @@ def _fill_from_fallback(
         "Fallback filled %d/%d questions for subject=%s topic=%s area_type=%s",
         len(extra), needed, subject, topic, area_type,
     )
+
+    if len(extra) < needed:
+        extra = _relax_fill(
+            extra, subject, topic, all_exclude, needed,
+            allowed_difficulties, allowed_blooms, area_type,
+        )
+
     return existing + extra
+
+
+def _band_distance(value, allowed: set) -> int:
+    if value is None or value in allowed:
+        return 0
+    return min(abs(value - a) for a in allowed)
+
+
+def _relax_fill(
+    picked: list,
+    subject: str,
+    topic: str,
+    all_exclude: set[str],
+    needed: int,
+    allowed_difficulties: set,
+    allowed_blooms: set,
+    area_type: str,
+) -> list:
+    """
+    Strict difficulty/Bloom bands can leave a topic with zero servable
+    questions purely because of how it was tagged (e.g. no difficulty 1-2
+    questions for a "new" area). Rank the remaining questions by distance
+    from the target bands instead of excluding them.
+    """
+    taken = all_exclude | {str(q.id) for q in picked}
+    pool = list(
+        Question.objects
+        .filter(subject=subject, topic=topic)
+        .exclude(id__in=taken)
+        .select_related("set")
+        .only(
+            "id", "text", "options", "response_type", "tolerance", "difficulty",
+            "bloom_level", "topic", "set", "position_in_set", "image_url",
+            "snippet_language", "snippet_body", "snippet_line_range", "snippet_output",
+        )
+    )
+    pool.sort(key=lambda q: (
+        _band_distance(q.difficulty, allowed_difficulties),
+        _band_distance(q.bloom_level, allowed_blooms),
+    ))
+
+    more = resolve_set_membership(pool, taken, target_count=needed - len(picked))
+
+    logger.info(
+        "Relaxed-band fill added %d questions for subject=%s topic=%s area_type=%s "
+        "(strict bands yielded %d/%d)",
+        len(more), subject, topic, area_type, len(picked), needed,
+    )
+    return picked + more
 
 
 def _format_question(q) -> dict:
