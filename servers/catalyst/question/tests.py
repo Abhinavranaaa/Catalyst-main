@@ -1,7 +1,7 @@
 import uuid
 from django.db import IntegrityError, transaction
 from django.test import TestCase
-from question.models import EnrichmentStatus, Question
+from question.models import EnrichmentStatus, Question, QuestionSet
 
 
 class QuestionExplanationFieldTest(TestCase):
@@ -182,3 +182,97 @@ class EnrichmentStatusTransitionTest(TestCase):
             q.transition_status(EnrichmentStatus.RAW)
         q.refresh_from_db()
         self.assertEqual(q.enrichment_status, EnrichmentStatus.ENRICHED)
+
+
+# ---------------------------------------------------------------------------
+# QuestionSet — QT-02
+# ---------------------------------------------------------------------------
+
+class QuestionSetTest(TestCase):
+    def _make_question(self, **kwargs):
+        defaults = dict(
+            topic="Data Interpretation",
+            subject="DILR",
+            difficulty=3,
+            options=["A", "B", "C", "D"],
+            correct_index=0,
+            text="What is 2 + 2?",
+        )
+        defaults.update(kwargs)
+        return Question.objects.create(**defaults)
+
+    def test_questionset_can_be_created(self):
+        qset = QuestionSet.objects.create(
+            topic="Employees per Department",
+            difficulty="medium",
+            directions_text="Study the table and answer the questions below.",
+        )
+        qset.refresh_from_db()
+        self.assertEqual(qset.topic, "Employees per Department")
+
+    def test_questions_grouped_into_set_with_ordering(self):
+        qset = QuestionSet.objects.create(
+            topic="Employees per Department",
+            difficulty="medium",
+            directions_text="Study the table and answer the questions below.",
+        )
+        q3 = self._make_question(text="Q3", set=qset, position_in_set=3)
+        q1 = self._make_question(text="Q1", set=qset, position_in_set=1)
+        q2 = self._make_question(text="Q2", set=qset, position_in_set=2)
+
+        ordered = list(qset.questions.order_by("position_in_set"))
+
+        self.assertEqual([q.text for q in ordered], ["Q1", "Q2", "Q3"])
+        self.assertEqual({q1.id, q2.id, q3.id}, {q.id for q in ordered})
+
+    def test_standalone_question_has_no_set(self):
+        q = self._make_question()
+        self.assertIsNone(q.set)
+        self.assertIsNone(q.position_in_set)
+
+    def test_set_deletion_cascades_to_questions(self):
+        qset = QuestionSet.objects.create(
+            topic="T", difficulty="medium", directions_text="D",
+        )
+        q = self._make_question(set=qset, position_in_set=1)
+        qset.delete()
+        self.assertFalse(Question.objects.filter(id=q.id).exists())
+
+
+# ---------------------------------------------------------------------------
+# image_url — QT-03
+# ---------------------------------------------------------------------------
+
+class ImageUrlFieldTest(TestCase):
+    def _make_question(self, **kwargs):
+        defaults = dict(
+            topic="Algebra",
+            subject="Mathematics",
+            difficulty=3,
+            options=["A", "B", "C", "D"],
+            correct_index=0,
+            text="What is 2 + 2?",
+        )
+        defaults.update(kwargs)
+        return Question.objects.create(**defaults)
+
+    def test_question_image_url_defaults_to_null(self):
+        q = self._make_question()
+        self.assertIsNone(q.image_url)
+
+    def test_question_image_url_can_be_stored_and_retrieved(self):
+        q = self._make_question(image_url="https://example.com/diagram.png")
+        q.refresh_from_db()
+        self.assertEqual(q.image_url, "https://example.com/diagram.png")
+
+    def test_questionset_image_url_defaults_to_null(self):
+        qset = QuestionSet.objects.create(topic="T", difficulty="medium", directions_text="D")
+        self.assertIsNone(qset.image_url)
+
+    def test_questionset_image_url_can_be_stored_and_retrieved(self):
+        qset = QuestionSet.objects.create(
+            topic="T", difficulty="medium", directions_text="D",
+            image_url="https://example.com/dilr-table.png",
+        )
+        qset.refresh_from_db()
+        self.assertEqual(qset.image_url, "https://example.com/dilr-table.png")
