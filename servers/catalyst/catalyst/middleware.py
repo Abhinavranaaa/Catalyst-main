@@ -10,12 +10,23 @@ from users.models import User
 
 logger = logging.getLogger(__name__)
 
+# Paths hit by external services that can't attach our internal
+# X-App-Sec header. These endpoints must authenticate the caller by
+# other means (e.g. Razorpay's webhook signature).
+CLOUDFLARE_SHIELD_EXEMPT_PATHS = {
+    "/api/payments/webhook",
+}
+
+
 class CloudflareShieldMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
 
     def __call__(self, request):
         if settings.DEBUG:
+            return self.get_response(request)
+
+        if request.path in CLOUDFLARE_SHIELD_EXEMPT_PATHS:
             return self.get_response(request)
 
         expected_secret = config("CLOUDFLARE_SHIELD_SECRET")
