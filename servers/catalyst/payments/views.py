@@ -59,6 +59,34 @@ def create_subscription(request):
     return Response({"razorpay_subscription_id": subscription.razorpay_subscription_id})
 
 
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def subscription_status(request):
+    user_id = str(request.user.id)
+    qs = Subscription.objects.select_related("plan").filter(user_id=user_id)
+    # An active row is the current source of truth if one exists; otherwise
+    # fall back to the most recent row (created/cancelled/paused/expired) so
+    # the frontend can still show something meaningful instead of nothing.
+    subscription = qs.filter(status="active").order_by("-created_at").first()
+    if subscription is None:
+        subscription = qs.order_by("-created_at").first()
+
+    if subscription is None:
+        return Response({
+            "has_active_subscription": False,
+            "status": None,
+            "plan_name": None,
+            "current_period_end": None,
+        })
+
+    return Response({
+        "has_active_subscription": subscription.status == "active",
+        "status": subscription.status,
+        "plan_name": subscription.plan.name,
+        "current_period_end": subscription.current_period_end,
+    })
+
+
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def razorpay_webhook(request):
