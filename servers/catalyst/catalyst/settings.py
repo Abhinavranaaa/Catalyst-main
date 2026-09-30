@@ -77,6 +77,7 @@ INSTALLED_APPS = [
     'dashboard',
     'notifications',
     'enrollments',
+    'payments',
 ]
 
 MIDDLEWARE = [
@@ -221,6 +222,18 @@ EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD")
 
 # Default "from" email address for outgoing emails
 DEFAULT_FROM_EMAIL = "Catalyst Roadmap <admin@catalystedutech.com>"
+
+RAZORPAY_KEY_ID = config("RAZORPAY_KEY_ID")
+RAZORPAY_KEY_SECRET = config("RAZORPAY_KEY_SECRET")
+# Configured separately in the Razorpay dashboard when registering the
+# webhook URL — not the same value as RAZORPAY_KEY_SECRET.
+RAZORPAY_WEBHOOK_SECRET = config("RAZORPAY_WEBHOOK_SECRET")
+
+RAZORPAY_KEY_ID = config("RAZORPAY_KEY_ID")
+RAZORPAY_KEY_SECRET = config("RAZORPAY_KEY_SECRET")
+# Configured separately in the Razorpay dashboard when registering the
+# webhook URL — not the same value as RAZORPAY_KEY_SECRET.
+RAZORPAY_WEBHOOK_SECRET = config("RAZORPAY_WEBHOOK_SECRET")
 
 # Your sending email constant (used in your send method)
 CATALYST_EMAIL = DEFAULT_FROM_EMAIL
