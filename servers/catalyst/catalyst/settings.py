@@ -78,6 +78,7 @@ INSTALLED_APPS = [
     'notifications',
     'enrollments',
     'payments',
+    'bookmarks',
 ]
 
 MIDDLEWARE = [

@@ -32,4 +32,6 @@ urlpatterns = [
     path("practice/",include("practice.urls")),
     path("api/enrollments/", include("enrollments.urls")),
     path("api/payments/", include("payments.urls")),
+    path("api/bookmarks/", include("bookmarks.urls")),
+    path("api/flags/", include("bookmarks.flag_urls")),
 ]
