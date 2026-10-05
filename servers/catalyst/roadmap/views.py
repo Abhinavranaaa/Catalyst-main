@@ -381,6 +381,29 @@ def get_session_review(request, session_id):
     return Response(session.results_json, status=status.HTTP_200_OK)
 
 
+@api_view(['GET'])
+def list_solved_sessions(request):
+    """
+    Lists all of the user's completed sessions as lightweight summaries, so
+    the frontend can fetch any particular one by uuid via /sessions/{id}/review.
+    """
+    sessions = DailySession.objects.filter(
+        user=request.user, status=DailySession.Status.COMPLETED,
+    ).order_by('-completed_at')
+
+    return Response({
+        "sessions": [
+            {
+                "sessionId": str(session.session_id),
+                "subject": session.subject,
+                "date": session.completed_at.date().isoformat() if session.completed_at else None,
+                "topicHeadline": (session.payload_json.get("focusAreas") or [{}])[0].get("topicHeadline"),
+            }
+            for session in sessions
+        ],
+    }, status=status.HTTP_200_OK)
+
+
 def _build_session_response(raw: dict, session: DailySession, user) -> dict:
     """
     Transforms the generator's raw payload into the API response shape.
