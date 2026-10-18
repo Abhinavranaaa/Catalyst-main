@@ -13,6 +13,7 @@ services:
     container_name: catalyst-api
     restart: unless-stopped
     ports:
+      - "80:8080"
       - "8080:8080"
     # Match Cloud Run catalyst-main: 2 vCPU / 2 GiB
     cpus: "2.0"
