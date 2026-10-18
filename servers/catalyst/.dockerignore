@@ -1,0 +1,15 @@
+.env
+.env.*
+__pycache__
+*.pyc
+*.pyo
+.git
+.idea
+venv
+.venv
+venv_py311
+*.md
+Catalyst_HLD.pdf
+mock_data
+scripts/test_*
+scripts/build_hld_pdf.py

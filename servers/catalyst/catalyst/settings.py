@@ -47,8 +47,14 @@ ALLOWED_HOSTS = [
     'catalyst-main-1036749949194.us-central1.run.app',
     'api.catalystedutech.com',
     'catalystedutech.com',
-    'www.catalystedutech.com'
+    'www.catalystedutech.com',
 ]
+# Comma-separated extras for EC2 / App Runner hostnames (e.g. ec2-xx.compute.amazonaws.com)
+_extra_hosts = os.getenv("EXTRA_ALLOWED_HOSTS", "")
+if _extra_hosts.strip():
+    ALLOWED_HOSTS.extend(
+        h.strip() for h in _extra_hosts.split(",") if h.strip()
+    )
 
 STATIC_URL = '/static/'
 

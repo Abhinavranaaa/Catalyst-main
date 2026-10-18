@@ -1,0 +1,37 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-f'
+      - 'servers/catalyst/Dockerfile'
+      - '-t'
+      - 'us-central1-docker.pkg.dev/catalyst-be/catalyst-main/catalyst-main:$COMMIT_SHA'
+      - 'servers/catalyst'
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'us-central1-docker.pkg.dev/catalyst-be/catalyst-main/catalyst-main:$COMMIT_SHA'
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - catalyst-main
+      - --image=us-central1-docker.pkg.dev/catalyst-be/catalyst-main/catalyst-main:$COMMIT_SHA
+      - --region=us-central1
+      - --platform=managed
+      - --memory=2Gi
+      - --cpu=2
+      - --timeout=600
+      - --min-instances=0 
+      - --max-instances=5
+      - --allow-unauthenticated
+
+images:
+  - 'us-central1-docker.pkg.dev/catalyst-be/catalyst-main/catalyst-main:$COMMIT_SHA'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+

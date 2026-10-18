@@ -1,0 +1,64 @@
+# Build catalyst-main and push to ECR on every push to aws-migration or main.
+# Auth is GitHub OIDC → IAM role catalyst-github-ecr (no long-lived AWS keys).
+# After a successful push, the workflow tells the EC2 host to pull and restart.
+
+name: Deploy main to AWS ECR
+
+on:
+  push:
+    branches: [aws-migration, main]
+    paths:
+      - "servers/catalyst/**"
+      - ".github/workflows/deploy-aws.yml"
+      - "infra/aws/ec2/**"
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REGISTRY: 809918851619.dkr.ecr.us-east-1.amazonaws.com
+
+jobs:
+  deploy-main:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::809918851619:role/catalyst-github-ecr
+          aws-region: us-east-1
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push catalyst-main
+        run: |
+          docker build \
+            -f servers/catalyst/Dockerfile \
+            -t "$ECR_REGISTRY/catalyst-main:${{ github.sha }}" \
+            -t "$ECR_REGISTRY/catalyst-main:latest" \
+            servers/catalyst
+          docker push "$ECR_REGISTRY/catalyst-main:${{ github.sha }}"
+          docker push "$ECR_REGISTRY/catalyst-main:latest"
+
+      - name: Restart EC2 stack
+        run: |
+          INSTANCE_ID=$(aws ec2 describe-instances \
+            --region "$AWS_REGION" \
+            --filters Name=tag:Name,Values=catalyst-ec2 Name=instance-state-name,Values=running \
+            --query 'Reservations[0].Instances[0].InstanceId' --output text)
+          if [[ "$INSTANCE_ID" == "None" || -z "$INSTANCE_ID" ]]; then
+            echo "No running catalyst-ec2 instance; image is in ECR only."
+            exit 0
+          fi
+          aws ssm send-command \
+            --region "$AWS_REGION" \
+            --instance-ids "$INSTANCE_ID" \
+            --document-name AWS-RunShellScript \
+            --comment "pull catalyst images" \
+            --parameters commands="cd /opt/catalyst && ./deploy.sh"

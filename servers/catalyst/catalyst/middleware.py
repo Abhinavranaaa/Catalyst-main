@@ -15,6 +15,9 @@ class CloudflareShieldMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
+        if request.path == "/health":
+            return self.get_response(request)
+
         if settings.DEBUG:
             return self.get_response(request)
 

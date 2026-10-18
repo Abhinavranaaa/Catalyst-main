@@ -17,10 +17,17 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from django.urls.conf import include
+from django.http import JsonResponse
 from notifications.views import save_push_subscription
 from notifications.views import get_vapid_public_key
 
+
+def health(request):
+    return JsonResponse({"status": "ok"})
+
+
 urlpatterns = [
+    path("health", health),
     path('admin/', admin.site.urls),
     path('api/', include('users.urls')),
     path("roadmap/", include("roadmap.urls")),

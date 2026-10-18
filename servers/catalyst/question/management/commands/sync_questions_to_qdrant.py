@@ -18,7 +18,7 @@ class Command(BaseCommand):
     help = "Sync question embeddings and metadata to remote Qdrant instance"
 
     def handle(self, *args, **kwargs):
-        COLLECTION_NAME = "questions"
+        COLLECTION_NAME = "questions1"
         VECTOR_SIZE = 384
         BATCH_SIZE = 64
 

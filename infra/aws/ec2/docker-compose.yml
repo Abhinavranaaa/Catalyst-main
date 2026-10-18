@@ -1,0 +1,90 @@
+# EC2 host: catalyst-main (this repo) + catalyst-embed (catalyst-services repo)
+#
+# Images must already be in ECR:
+#   $ECR_REGISTRY/catalyst-main:latest
+#   $ECR_REGISTRY/catalyst-embed:latest
+#
+# Usage on the EC2 box:
+#   cd /opt/catalyst && ./deploy.sh
+
+services:
+  api:
+    image: ${ECR_REGISTRY}/catalyst-main:${IMAGE_TAG:-latest}
+    container_name: catalyst-api
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    # Match Cloud Run catalyst-main: 2 vCPU / 2 GiB
+    cpus: "2.0"
+    mem_limit: 2g
+    env_file:
+      - .env
+    environment:
+      # Real embed service on the compose network (catalyst-services)
+      EMBED_SERVICE_BASE: http://embed:8080
+      EMBED_PROVIDER: s2s
+      EMBED_AUTH_MODE: shared_secret
+      GOOGLE_APPLICATION_CREDENTIALS: /run/secrets/gcp-sa.json
+      PORT: "8080"
+    volumes:
+      - ${GCP_SA_JSON_HOST:-./secrets/gcp-sa.json}:/run/secrets/gcp-sa.json:ro
+    depends_on:
+      embed:
+        condition: service_healthy
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: ${AWS_REGION:-us-east-1}
+        awslogs-group: /catalyst/ec2/api
+        awslogs-stream: api
+        awslogs-create-group: "true"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health')",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  embed:
+    # Built from /Users/.../catalyst-services (NOT from this repo)
+    image: ${ECR_REGISTRY}/catalyst-embed:${IMAGE_TAG:-latest}
+    container_name: catalyst-embed
+    restart: unless-stopped
+    # Match Cloud Run embed-api: 2 vCPU / 4 GiB
+    cpus: "2.0"
+    mem_limit: 4g
+    # Internal only — API reaches it at http://embed:8080
+    env_file:
+      - .env
+    environment:
+      EMBED_SERVICE_SECRET: ${EMBED_SERVICE_SECRET}
+      EMBED_MODEL: sentence-transformers/all-MiniLM-L6-v2
+      TORCH_NUM_THREADS: "4"
+      UVICORN_WORKERS: "1"
+      PORT: "8080"
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: ${AWS_REGION:-us-east-1}
+        awslogs-group: /catalyst/ec2/embed
+        awslogs-stream: embed
+        awslogs-create-group: "true"
+    healthcheck:
+      # /ready is false until SentenceTransformer is loaded
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import json,urllib.request; d=json.load(urllib.request.urlopen('http://127.0.0.1:8080/ready')); assert d.get('ready') is True",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 10
+      start_period: 240s

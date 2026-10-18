@@ -34,12 +34,17 @@ class RoadmapTaskPublisher:
 
 
         payload = json.dumps({"job_id": job_id}).encode()
+        # X-App-Sec so Cloud Tasks can call the AWS host through CloudflareShieldMiddleware
+        headers = {"Content-Type": "application/json"}
+        shield = os.getenv("CLOUDFLARE_SHIELD_SECRET")
+        if shield:
+            headers["X-App-Sec"] = shield
 
         task = {
             "http_request": {
                 "http_method": tasks_v2.HttpMethod.POST,
                 "url": self.target_url,
-                "headers": {"Content-Type": "application/json"},
+                "headers": headers,
                 "body": payload,
                 "oidc_token": {
                     "service_account_email": self.sa_email,
