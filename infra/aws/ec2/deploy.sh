@@ -8,7 +8,15 @@ ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$ROOT"
 
 if [[ ! -f .env ]]; then
-  echo "Missing .env in $ROOT" >&2
+  echo "Missing compose .env (AWS_REGION, ECR_REGISTRY, IMAGE_TAG) in $ROOT" >&2
+  exit 1
+fi
+if [[ ! -f api.env ]]; then
+  echo "Missing api.env in $ROOT" >&2
+  exit 1
+fi
+if [[ ! -f embed.env ]]; then
+  echo "Missing embed.env in $ROOT" >&2
   exit 1
 fi
 
@@ -41,4 +49,25 @@ docker compose up -d --remove-orphans
 echo "==> Status"
 docker compose ps
 curl -fsS "http://127.0.0.1:8080/health" && echo
+
+CADDYFILE_NAME="${CADDYFILE:-Caddyfile.internal}"
+EIP="$(curl -fsS --connect-timeout 2 http://169.254.169.254/latest/meta-data/public-ipv4 2>/dev/null || true)"
+
+if [[ "${CADDYFILE_NAME}" == *internal* ]]; then
+  TARGET="https://127.0.0.1/health"
+  [[ -n "${EIP}" ]] && TARGET="https://${EIP}/health"
+  if curl -fsSk --connect-timeout 5 "${TARGET}" >/dev/null 2>&1; then
+    echo "TLS ok (self-signed): ${TARGET}"
+    echo "Insomnia: https://${EIP:-EIP} — turn SSL validation OFF. Cookie jwt binds to this IP until DNS."
+  else
+    echo "WARNING: HTTPS on :443 not ready. Open SG 443; check: docker compose logs caddy --tail 50" >&2
+  fi
+else
+  HOST="${API_HOSTNAME:-api.catalystedutech.com}"
+  if curl -fsSk --connect-timeout 5 "https://${HOST}/health" >/dev/null 2>&1; then
+    echo "TLS ok (Let's Encrypt): https://${HOST}/health"
+  else
+    echo "WARNING: https://${HOST}/health not ready. Need DNS A → EIP + SG 80/443." >&2
+  fi
+fi
 echo "Deploy complete."

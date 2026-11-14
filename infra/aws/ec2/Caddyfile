@@ -1,0 +1,19 @@
+# Production TLS — Let's Encrypt.
+# Requires DNS A for {$API_HOSTNAME} → Elastic IP before first cert issue.
+# Use Caddyfile.internal until that DNS change (Phase A).
+
+{
+	email {$ACME_EMAIL}
+}
+
+{$API_HOSTNAME} {
+	encode gzip
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+	}
+	reverse_proxy api:8080 {
+		header_up X-Forwarded-Proto {scheme}
+		header_up X-Real-IP {remote_host}
+		header_up Host {host}
+	}
+}

@@ -1,0 +1,21 @@
+# Phase A — HTTPS on the Elastic IP before DNS cutover.
+# Insomnia base URL: https://YOUR_EIP  (SSL validate OFF)
+# Cookie jwt is host-only for that IP; after DNS use the real hostname + Caddyfile.
+
+{
+	local_certs
+	auto_https disable_redirects
+}
+
+:443 {
+	tls internal
+	encode gzip
+	reverse_proxy api:8080 {
+		header_up X-Forwarded-Proto https
+		header_up X-Real-IP {remote_host}
+	}
+}
+
+:80 {
+	respond "Use https://<EIP>/ (port 443)" 200
+}

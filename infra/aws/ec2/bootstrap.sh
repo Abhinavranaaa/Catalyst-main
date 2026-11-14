@@ -52,13 +52,13 @@ cat <<EOF
 Bootstrap done.
 
 Next on this host:
-  1. Copy docker-compose.yml + deploy.sh into ${INSTALL_DIR}
-  2. Copy filled .env to ${INSTALL_DIR}/.env
+  1. Copy docker-compose.yml + deploy.sh + Caddyfile into ${INSTALL_DIR}
+  2. Copy filled .env, api.env, embed.env into ${INSTALL_DIR}
   3. Copy GCP Cloud Tasks SA JSON to ${INSTALL_DIR}/secrets/gcp-sa.json
   4. Attach an instance IAM role with:
        - AmazonEC2ContainerRegistryReadOnly
        - CloudWatchLogsFullAccess (or tighter logs:* on /catalyst/ec2/*)
-  5. Open SG inbound 8080 from Cloudflare only (or 443 if you terminate TLS here)
-  6. Run: ${INSTALL_DIR}/deploy.sh
+  5. Open SG inbound 80+443 (Caddy TLS). Close public 8080 after cutover.
+  6. Point DNS A for API_HOSTNAME at the Elastic IP, then: ${INSTALL_DIR}/deploy.sh
 
 EOF

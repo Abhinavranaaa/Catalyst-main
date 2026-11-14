@@ -1,27 +1,47 @@
-# EC2 host: catalyst-main (this repo) + catalyst-embed (catalyst-services repo)
-#
-# Images must already be in ECR:
-#   $ECR_REGISTRY/catalyst-main:latest
-#   $ECR_REGISTRY/catalyst-embed:latest
-#
-# Usage on the EC2 box:
-#   cd /opt/catalyst && ./deploy.sh
+# One EC2 host: Caddy (TLS) + API + embed.
+# Public: :80/:443 → caddy → api:8080
+# S2S: API → http://embed:8080 on the compose network (not the EIP).
 
 services:
+  caddy:
+    image: caddy:2.8-alpine
+    container_name: catalyst-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      API_HOSTNAME: ${API_HOSTNAME:-api.catalystedutech.com}
+      ACME_EMAIL: ${ACME_EMAIL:-ops@catalystedutech.com}
+    volumes:
+      # Phase A (pre-DNS): Caddyfile.internal
+      # Phase C (after DNS): Caddyfile
+      - ./${CADDYFILE:-Caddyfile.internal}:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: ${AWS_REGION:-us-east-1}
+        awslogs-group: /catalyst/ec2/caddy
+        awslogs-stream: caddy
+        awslogs-create-group: "true"
+
   api:
     image: ${ECR_REGISTRY}/catalyst-main:${IMAGE_TAG:-latest}
     container_name: catalyst-api
     restart: unless-stopped
+    # Loopback only — public traffic goes through Caddy on 80/443.
     ports:
-      - "80:8080"
-      - "8080:8080"
-    # Match Cloud Run catalyst-main: 2 vCPU / 2 GiB
+      - "127.0.0.1:8080:8080"
     cpus: "2.0"
     mem_limit: 2g
     env_file:
-      - .env
+      - api.env
     environment:
-      # Real embed service on the compose network (catalyst-services)
       EMBED_SERVICE_BASE: http://embed:8080
       EMBED_PROVIDER: s2s
       EMBED_AUTH_MODE: shared_secret
@@ -53,21 +73,14 @@ services:
       start_period: 60s
 
   embed:
-    # Built from /Users/.../catalyst-services (NOT from this repo)
     image: ${ECR_REGISTRY}/catalyst-embed:${IMAGE_TAG:-latest}
     container_name: catalyst-embed
     restart: unless-stopped
-    # Match Cloud Run embed-api: 2 vCPU / 4 GiB
     cpus: "2.0"
     mem_limit: 4g
-    # Internal only — API reaches it at http://embed:8080
     env_file:
-      - .env
+      - embed.env
     environment:
-      EMBED_SERVICE_SECRET: ${EMBED_SERVICE_SECRET}
-      EMBED_MODEL: sentence-transformers/all-MiniLM-L6-v2
-      TORCH_NUM_THREADS: "4"
-      UVICORN_WORKERS: "1"
       PORT: "8080"
     logging:
       driver: awslogs
@@ -77,7 +90,6 @@ services:
         awslogs-stream: embed
         awslogs-create-group: "true"
     healthcheck:
-      # /ready is false until SentenceTransformer is loaded
       test:
         [
           "CMD",
@@ -89,3 +101,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 240s
+
+volumes:
+  caddy_data:
+  caddy_config:
