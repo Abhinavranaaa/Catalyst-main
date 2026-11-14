@@ -1,14 +1,12 @@
-# Phase A — HTTPS on the Elastic IP before DNS cutover.
-# Insomnia base URL: https://YOUR_EIP  (SSL validate OFF)
-# Cookie jwt is host-only for that IP; after DNS use the real hostname + Caddyfile.
+# Phase A — HTTPS on the Elastic IP (OpenSSL self-signed).
+# Insomnia: https://YOUR_EIP  — SSL validation OFF.
 
 {
-	local_certs
-	auto_https disable_redirects
+	auto_https off
 }
 
 :443 {
-	tls internal
+	tls /etc/caddy/certs/cert.pem /etc/caddy/certs/key.pem
 	encode gzip
 	reverse_proxy api:8080 {
 		header_up X-Forwarded-Proto https

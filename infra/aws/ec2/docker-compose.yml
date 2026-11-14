@@ -14,9 +14,10 @@ services:
       API_HOSTNAME: ${API_HOSTNAME:-api.catalystedutech.com}
       ACME_EMAIL: ${ACME_EMAIL:-ops@catalystedutech.com}
     volumes:
-      # Phase A (pre-DNS): Caddyfile.internal
-      # Phase C (after DNS): Caddyfile
+      # Phase A (pre-DNS): Caddyfile.internal + ./certs self-signed for EIP
+      # Phase C (after DNS): Caddyfile (Let's Encrypt; certs mount unused)
       - ./${CADDYFILE:-Caddyfile.internal}:/etc/caddy/Caddyfile:ro
+      - ./certs:/etc/caddy/certs:ro
       - caddy_data:/data
       - caddy_config:/config
     depends_on:

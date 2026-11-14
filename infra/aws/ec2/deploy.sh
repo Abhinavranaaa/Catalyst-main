@@ -38,12 +38,26 @@ if [[ ! -f "$GCP_SA_FILE" ]] || ! grep -q '"private_key"' "$GCP_SA_FILE"; then
   fi
 fi
 
+CADDYFILE_NAME="${CADDYFILE:-Caddyfile.internal}"
+if [[ "${CADDYFILE_NAME}" == *internal* ]]; then
+  mkdir -p certs
+  if [[ ! -f certs/cert.pem || ! -f certs/key.pem ]]; then
+    EIP="$(curl -fsS --connect-timeout 2 http://169.254.169.254/latest/meta-data/public-ipv4 2>/dev/null || echo 127.0.0.1)"
+    echo "==> Generating self-signed TLS cert for ${EIP}"
+    openssl req -x509 -newkey rsa:2048 -sha256 -days 825 -nodes \
+      -keyout certs/key.pem -out certs/cert.pem \
+      -subj "/CN=${EIP}" \
+      -addext "subjectAltName=IP:${EIP}"
+  fi
+fi
+
 echo "==> ECR login"
 aws ecr get-login-password --region "$AWS_REGION" \
   | docker login --username AWS --password-stdin "$ECR_REGISTRY"
 
 echo "==> Pull + up"
-docker compose pull
+# Prefer pulling only what changed; full API image pull is multi‑GB and often times out under SSM.
+docker compose pull caddy || true
 docker compose up -d --remove-orphans
 
 echo "==> Status"
