@@ -819,6 +819,9 @@ SUBJECT_TOPICS: dict[str, list[str]] = {
         "Alligations and Mixtures",
         "Profit, Loss and Discount"
     ],
+    "CAT Data Interpretation and Logical Reasoning": [
+        "Traditional Data Interpretation",
+    ],
 }
 
 MAX_ROADMAPS_PER_WINDOW = 3
