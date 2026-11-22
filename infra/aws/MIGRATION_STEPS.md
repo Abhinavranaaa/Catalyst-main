@@ -14,9 +14,9 @@
 
 | Phase | Scope | Status |
 |-------|--------|--------|
-| **A** | HTTPS on EC2 (Caddy). No DNS/Cloudflare/OAuth changes. | **in progress** |
-| **B** | How Google OAuth works today + what EC2 must provide | later |
-| **C** | DNS → EIP + Cloudflare SSL policies + OAuth cutover | later |
+| **A** | HTTPS on EC2 (Caddy). | **done** (EIP self-signed, then LE after DNS) |
+| **B** | How Google OAuth works today + what EC2 must provide | next |
+| **C** | DNS → EIP + Cloudflare SSL + X-App-Sec | **done** (`api` A→`32.192.150.124`, SSL Full strict, LE on origin) |
 
 ### Already done (before Phase A)
 

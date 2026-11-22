@@ -1,12 +1,12 @@
-# Build catalyst-main and push to ECR on every push to aws-migration or main.
-# Auth is GitHub OIDC → IAM role catalyst-github-ecr (no long-lived AWS keys).
-# After a successful push, the workflow tells the EC2 host to pull and restart.
+# Build catalyst-main, push to ECR, and restart the EC2 stack.
+# Production path: push/merge to main.
+# Manual path: Actions → "Deploy main to AWS ECR" → Run workflow (any branch).
 
 name: Deploy main to AWS ECR
 
 on:
   push:
-    branches: [aws-migration, main]
+    branches: [main]
     paths:
       - "servers/catalyst/**"
       - ".github/workflows/deploy-aws.yml"
