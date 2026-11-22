@@ -1,0 +1,108 @@
+# One EC2 host: Caddy (TLS) + API + embed.
+# Public: :80/:443 → caddy → api:8080
+# S2S: API → http://embed:8080 on the compose network (not the EIP).
+
+services:
+  caddy:
+    image: caddy:2.8-alpine
+    container_name: catalyst-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      API_HOSTNAME: ${API_HOSTNAME:-api.catalystedutech.com}
+      ACME_EMAIL: ${ACME_EMAIL:-ops@catalystedutech.com}
+    volumes:
+      # Phase A (pre-DNS): Caddyfile.internal + ./certs self-signed for EIP
+      # Phase C (after DNS): Caddyfile (Let's Encrypt; certs mount unused)
+      - ./${CADDYFILE:-Caddyfile.internal}:/etc/caddy/Caddyfile:ro
+      - ./certs:/etc/caddy/certs:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: ${AWS_REGION:-us-east-1}
+        awslogs-group: /catalyst/ec2/caddy
+        awslogs-stream: caddy
+        awslogs-create-group: "true"
+
+  api:
+    image: ${ECR_REGISTRY}/catalyst-main:${IMAGE_TAG:-latest}
+    container_name: catalyst-api
+    restart: unless-stopped
+    # Loopback only — public traffic goes through Caddy on 80/443.
+    ports:
+      - "127.0.0.1:8080:8080"
+    cpus: "2.0"
+    mem_limit: 2g
+    env_file:
+      - api.env
+    environment:
+      EMBED_SERVICE_BASE: http://embed:8080
+      EMBED_PROVIDER: s2s
+      EMBED_AUTH_MODE: shared_secret
+      GOOGLE_APPLICATION_CREDENTIALS: /run/secrets/gcp-sa.json
+      PORT: "8080"
+    volumes:
+      - ${GCP_SA_JSON_HOST:-./secrets/gcp-sa.json}:/run/secrets/gcp-sa.json:ro
+    depends_on:
+      embed:
+        condition: service_healthy
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: ${AWS_REGION:-us-east-1}
+        awslogs-group: /catalyst/ec2/api
+        awslogs-stream: api
+        awslogs-create-group: "true"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health')",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  embed:
+    image: ${ECR_REGISTRY}/catalyst-embed:${IMAGE_TAG:-latest}
+    container_name: catalyst-embed
+    restart: unless-stopped
+    cpus: "2.0"
+    mem_limit: 4g
+    env_file:
+      - embed.env
+    environment:
+      PORT: "8080"
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: ${AWS_REGION:-us-east-1}
+        awslogs-group: /catalyst/ec2/embed
+        awslogs-stream: embed
+        awslogs-create-group: "true"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import json,urllib.request; d=json.load(urllib.request.urlopen('http://127.0.0.1:8080/ready')); assert d.get('ready') is True",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 10
+      start_period: 240s
+
+volumes:
+  caddy_data:
+  caddy_config:

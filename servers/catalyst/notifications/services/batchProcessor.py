@@ -45,12 +45,16 @@ def batchProcess(request):
         )
 
         payload = {"user_ids": batch}
+        headers = {"Content-Type": "application/json"}
+        shield = os.getenv("CLOUDFLARE_SHIELD_SECRET")
+        if shield:
+            headers["X-App-Sec"] = shield
 
         task = {
             "http_request": {
                 "url": target_url,
                 "http_method": tasks_v2.HttpMethod.POST,
-                "headers": {"Content-Type": "application/json"},
+                "headers": headers,
                 "body": json.dumps(payload).encode(),
                 "oidc_token": {
                     "service_account_email": sa_email,
